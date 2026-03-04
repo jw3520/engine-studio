@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Neuro-T Engine Studio</title>
+    <script src="model_rules.js"></script>
+    <style>
+        :root { --primary-color: #3498db; --bg-color: #f4f7f6; --panel-bg: #ffffff; --text-color: #2c3e50; --meta-bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { background-color: var(--panel-bg); padding: 0.8rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+        .container { display: flex; flex: 1; overflow: hidden; padding: 1rem; gap: 1rem; }
+        
+        .sidebar { width: 380px; background-color: var(--panel-bg); padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+        .input-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        input { padding: 0.7rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; width: 100%; box-sizing: border-box; }
+        button { padding: 0.9rem; background-color: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
+        .meta-panel { background: var(--meta-bg); border-radius: 6px; padding: 12px; border: 1px solid #e1e4e8; margin-top: 5px; }
+        .meta-title { font-size: 0.8rem; font-weight: bold; color: #7f8c8d; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+        .meta-item { display: flex; justify-content: space-between; padding: 3px 0; font-size: 0.85rem; }
+        .meta-value { font-weight: bold; color: var(--primary-color); }
+        .metric-value { font-weight: bold; color: #e67e22; }
+
+        .viewer-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; overflow-y: auto; }
+        .view-panel { background: #1a1a1a; border-radius: 8px; position: relative; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; overflow: hidden; }
+        
+        .canvas-container { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .base-canvas { position: absolute; max-width: 95%; max-height: 95%; object-fit: contain; z-index: 1; }
+        .overlay-canvas { position: absolute; max-width: 95%; max-height: 95%; object-fit: contain; z-index: 2; cursor: crosshair; }
+
+        .view-label { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.8); color: #fff; padding: 5px 12px; border-radius: 4px; font-size: 0.85rem; z-index: 10; font-weight: bold; border: 1px solid #555; pointer-events: none; }
+        .max-btn { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #555; border-radius: 4px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 20; transition: all 0.2s; font-size: 18px; pointer-events: auto !important; }
+        .max-btn:hover { background: var(--primary-color); border-color: white; }
+
+        .mask-counter { margin-top: 10px; color: #fff; background: #333; padding: 6px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; position: relative; z-index: 5; margin-bottom: 8px; }
+        .filename-display { margin-bottom: 10px; padding: 10px; background: #eee; border-radius: 4px; font-family: monospace; font-weight: bold; text-align: center; font-size: 1.1rem; border: 1px dashed #bbb; }
+        .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #bdc3c7; font-size: 2rem; gap: 20px; background: #1a1a1a; border-radius: 8px; border: 2px dashed #333; }
+        .leaf-icon { font-size: 4rem; animation: roll 5s infinite linear; }
+        @keyframes roll { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .controls { margin-top: 1rem; display: flex; gap: 0.8rem; align-items: center; justify-content: center; background: var(--panel-bg); padding: 12px; border-radius: 8px; }
+        .jump-btn { background: #666 !important; min-width: 55px; }
+        
+        #areaTooltip { position: fixed; pointer-events: none; background: rgba(0,0,0,0.95); color: #fff; padding: 10px 15px; border-radius: 6px; font-size: 0.85rem; z-index: 1000; display: none; font-family: monospace; border: 1px solid #555; box-shadow: 0 8px 20px rgba(0,0,0,0.4); line-height: 1.5; }
+        .tt-gt { color: #2ecc71; font-weight: bold; }
+        .tt-pred { color: #3498db; font-weight: bold; }
+
+        /* Modal & Tabs & Footer */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.98); flex-direction: column; align-items: center; justify-content: center; }
+        .modal-header { width: 100%; padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; color: white; background: rgba(255,255,255,0.05); box-sizing: border-box; }
+        .modal-tabs { display: flex; gap: 5px; background: #333; padding: 5px; border-radius: 6px; }
+        .modal-tab { padding: 8px 20px; border-radius: 4px; border: none; background: transparent; color: #bbb; cursor: pointer; font-weight: bold; transition: all 0.2s; }
+        .modal-tab.active { background: var(--primary-color); color: white; }
+        .modal-body { flex: 1; width: 100%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: grab; }
+        .modal-footer { width: 100%; padding: 10px; color: #fff; background: rgba(0,0,0,0.5); text-align: center; font-weight: bold; font-family: monospace; font-size: 1.1rem; }
+        #maxCanvas { transition: transform 0.1s ease-out; transform-origin: center; }
+    </style>
+</head>
+<body>
+    <header>
+        <h2 style="margin:0; color:var(--primary-color);">🚀 Neuro-T Engine Studio</h2>
+        <div id="status" style="font-weight:bold;">Ready</div>
+    </header>
+
+    <div id="areaTooltip"></div>
+
+    <!-- Modal with Tabs & Filename & Index -->
+    <div id="maxModal" class="modal">
+        <div class="modal-header">
+            <div class="modal-tabs">
+                <button id="tab-orig" class="modal-tab" onclick="switchModalTab('orig')">Original (1)</button>
+                <button id="tab-label" class="modal-tab" onclick="switchModalTab('label')">GT Labels (2)</button>
+                <button id="tab-inf" class="modal-tab" onclick="switchModalTab('inf')">PRED Inference (3)</button>
+            </div>
+            <div id="modalFilename" style="font-family: monospace; font-weight: bold; color: #fff; font-size: 1.1rem; flex: 1; text-align: center;">FILENAME.PNG</div>
+            <div style="display:flex; gap:15px; align-items:center;">
+                <span id="zoomLevel" style="font-family: monospace; min-width: 50px;">100%</span>
+                <button class="modal-tab" style="background:#444;" onclick="adjustZoom(0.2)">+</button>
+                <button class="modal-tab" style="background:#444;" onclick="adjustZoom(-0.2)">-</button>
+                <button class="modal-tab" style="background:#444;" onclick="resetZoom()">Reset (0)</button>
+                <span style="cursor:pointer; font-size:35px; margin-left:15px;" onclick="closeModal()">&times;</span>
+            </div>
+        </div>
+        <div class="modal-body" id="modalBody"><canvas id="maxCanvas"></canvas></div>
+        <div id="modalIndex" class="modal-footer">0 / 0</div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="input-group">
+                <label><b>Task Path</b></label>
+                <input type="text" id="taskPath" value="C:\Users\Jungwoo Kim\Desktop\Performance Validation\ORD\ORD-Sauce_moka_test">
+            </div>
+            <div class="input-group">
+                <label><b>Output Path</b></label>
+                <input type="text" id="outputPath" value="C:\Users\Jungwoo Kim\Desktop\Performance Validation\ORD\ood_sauce_output">
+            </div>
+            <button id="loadBtn">🚀 데이터 불러오기</button>
+
+            <div id="metaPanel" class="meta-panel" style="display:none;">
+                <div class="meta-title">Task Metadata</div>
+                <div class="meta-item"><span>Model Type</span><span class="meta-value" id="metaModelType">-</span></div>
+                <div class="meta-item"><span>Resolution</span><span class="meta-value" id="metaResolution">-</span></div>
+                <div class="meta-item"><span>Training Images</span><span class="meta-value" id="metaTrainCount">0</span></div>
+                <div class="meta-item"><span>Evaluate Images</span><span class="meta-value" id="metaInfCount">0</span></div>
+                
+                <div class="meta-title" style="margin-top:10px;">Performance</div>
+                <div class="meta-item"><span>Accuracy</span><span class="metric-value" id="mAccuracy">-</span></div>
+                <div class="meta-item"><span>Precision</span><span class="metric-value" id="mPrecision">-</span></div>
+                <div class="meta-item"><span>Recall</span><span class="metric-value" id="mRecall">-</span></div>
+                <div class="meta-item"><span>F1-Score</span><span class="metric-value" id="mF1">-</span></div>
+            </div>
+        </div>
+
+        <div id="mainWorkspace" style="flex:1; display:flex; flex-direction:column; gap:10px; overflow:hidden;">
+            <div class="filename-display" id="currentFileName">데이터를 불러와 주세요</div>
+            
+            <div id="emptyDisplay" class="empty-state"><div>텅... 🍂</div></div>
+
+            <div id="viewerGrid" class="viewer-grid" style="display:none;">
+                <div class="view-panel">
+                    <div class="view-label">ORIGINAL</div>
+                    <button class="max-btn" onclick="openModal('orig')">⛶</button>
+                    <div class="canvas-container"><canvas id="canvasOrig" class="base-canvas"></canvas><canvas id="ovOrig" class="overlay-canvas"></canvas></div>
+                </div>
+                <div class="view-panel" id="panelGT">
+                    <div class="view-label" style="color:#2ecc71;">GT (LABELS)</div>
+                    <button class="max-btn" onclick="openModal('label')">⛶</button>
+                    <div class="canvas-container"><canvas id="canvasLabel" class="base-canvas"></canvas><canvas id="ovLabel" class="overlay-canvas"></canvas></div>
+                    <div class="mask-counter" id="countLabel">Classes: 0, Blobs: 0</div>
+                </div>
+                <div class="view-panel" id="panelPred">
+                    <div class="view-label" style="color:#3498db;">PRED (INFERENCE)</div>
+                    <button class="max-btn" onclick="openModal('inf')">⛶</button>
+                    <div class="canvas-container"><canvas id="canvasInference" class="base-canvas"></canvas><canvas id="ovInf" class="overlay-canvas"></canvas></div>
+                    <div class="mask-counter" id="countPred">Classes: 0, Blobs: 0</div>
+                </div>
+            </div>
+
+            <div class="controls" id="controlsPanel" style="visibility:hidden;">
+                <button id="prev100Btn" class="jump-btn">-100</button><button id="prev10Btn" class="jump-btn">-10</button>
+                <button id="prevBtn" style="background:#444;">⬅️</button>
+                <span id="indexDisplay" style="font-weight:bold; min-width:120px; text-align:center; font-size:1.1rem;">0 / 0</span>
+                <button id="nextBtn" style="background:#444;">➡️</button>
+                <button id="next10Btn" class="jump-btn">+10</button><button id="next100Btn" class="jump-btn">+100</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MODEL_TYPE_MAP = { 
+            "cla": "Classification", 
+            "seg": "Segmentation", 
+            "obd": "Object Detection", 
+            "ord": "Oriented Object Detection",
+            "ocr": "Optical Character Recognition",
+            "rot": "Rotation",
+            "anc": "Anomaly Classification",
+            "ans": "Anomaly Segmentation",
+            "pac": "Patch Classification"
+        };
+        
+        let taskData = { images: [], gt: null, pred: null, metrics: null, modelType: 'seg', indexedPred: {} };
+        let currentIndex = 0; let currentPolygons = { gt: [], pred: [] };
+        let hoveredGTIdx = -1; let hoveredPredIdx = -1;
+        
+        let zoomScale = 1.0; let isDragging = false;
+        let startX, startY, translateX = 0, translateY = 0;
+        let activeModalTab = 'orig';
+        let navTimeout = null;
+
+        const canvases = { 
+            orig: document.getElementById('canvasOrig'), label: document.getElementById('canvasLabel'), inf: document.getElementById('canvasInference'),
+            ovOrig: document.getElementById('ovOrig'), ovLabel: document.getElementById('ovLabel'), ovInf: document.getElementById('ovInf'),
+            max: document.getElementById('maxCanvas')
+        };
+        const ctxs = { 
+            orig: canvases.orig.getContext('2d'), label: canvases.label.getContext('2d'), inf: canvases.inf.getContext('2d'),
+            ovOrig: canvases.ovOrig.getContext('2d'), ovLabel: canvases.ovLabel.getContext('2d'), ovInf: canvases.ovInf.getContext('2d'),
+            max: canvases.max.getContext('2d')
+        };
+        const tooltip = document.getElementById('areaTooltip');
+
+        document.getElementById('loadBtn').addEventListener('click', loadTaskData);
+        document.getElementById('prevBtn').addEventListener('click', () => navigate(-1));
+        document.getElementById('nextBtn').addEventListener('click', () => navigate(1));
+        document.getElementById('prev10Btn').addEventListener('click', () => navigate(-10));
+        document.getElementById('next10Btn').addEventListener('click', () => navigate(10));
+        document.getElementById('prev100Btn').addEventListener('click', () => navigate(-100));
+        document.getElementById('next100Btn').addEventListener('click', () => navigate(100));
+
+        // Modal Scroll & Pan
+        document.getElementById('modalBody').addEventListener('wheel', (e) => { 
+            if (document.getElementById('maxModal').style.display === 'flex') { e.preventDefault(); adjustZoom(e.deltaY > 0 ? -0.1 : 0.1); }
+        });
+        document.getElementById('modalBody').addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX - translateX; startY = e.clientY - translateY; });
+        window.addEventListener('mousemove', (e) => { if (!isDragging) return; translateX = e.clientX - startX; translateY = e.clientY - startY; applyTransform(); });
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        ['ovLabel', 'ovInf'].forEach(id => {
+            canvases[id].addEventListener('mousemove', (e) => handleMouseMove(e));
+            canvases[id].addEventListener('mouseleave', () => { hoveredGTIdx = -1; hoveredPredIdx = -1; tooltip.style.display = 'none'; drawOverlaysOnly(); });
+        });
+
+        window.addEventListener('keydown', (e) => {
+            const isModal = document.getElementById('maxModal').style.display === 'flex';
+            if (isModal) {
+                if (e.key === 'Escape') closeModal();
+                if (e.key === '1') switchModalTab('orig');
+                if (e.key === '2') switchModalTab('label');
+                if (e.key === '3') switchModalTab('inf');
+                if (e.key === '+' || e.key === '=') adjustZoom(0.2);
+                if (e.key === '-') adjustZoom(-0.2);
+                if (e.key === '0') resetZoom();
+            }
+            if (taskData.images.length === 0) return;
+            const step = e.altKey ? 100 : (e.shiftKey ? 10 : 1);
+            if (e.key === 'ArrowLeft') navigate(-step); else if (e.key === 'ArrowRight') navigate(step);
+        });
+
+        async function loadTaskData() {
+            const taskPath = document.getElementById('taskPath').value.trim();
+            const outputPath = document.getElementById('outputPath').value.trim();
+            try {
+                const response = await fetch(`/api/task-data?taskPath=${encodeURIComponent(taskPath)}&outputPath=${encodeURIComponent(outputPath)}`);
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+                taskData.modelType = data.gt ? data.gt.label_type.toLowerCase() : 'seg';
+                taskData.indexedPred = {};
+                if (data.pred && data.pred.annotations) data.pred.annotations.forEach(a => { const id = String(a.image_id); if (!taskData.indexedPred[id]) taskData.indexedPred[id] = []; taskData.indexedPred[id].push(a); });
+                const predNames = new Set();
+                if (data.pred && data.pred.images) data.pred.images.forEach(i => predNames.add(getPureFileName(i.file_name)));
+                taskData.images = data.images.filter(img => predNames.has(getPureFileName(img)));
+                if (taskData.images.length === 0) taskData.images = data.images;
+                taskData.gt = data.gt; taskData.pred = data.pred; taskData.metrics = data.metrics;
+                document.getElementById('emptyDisplay').style.display = 'none';
+                document.getElementById('viewerGrid').style.display = 'grid';
+                document.getElementById('controlsPanel').style.visibility = 'visible';
+                updateMetadata(data); currentIndex = 0; 
+                const displayIdx = taskData.images.length > 0 ? 1 : 0;
+                document.getElementById('indexDisplay').innerText = `${displayIdx} / ${taskData.images.length}`;
+                updateViewer();
+            } catch (err) { alert('로드 실패: ' + err.message); }
+        }
+
+        function navigate(dir) {
+            if (taskData.images.length === 0) return;
+            currentIndex = (currentIndex + dir + taskData.images.length) % taskData.images.length;
+            const idxTxt = `${currentIndex + 1} / ${taskData.images.length}`;
+            document.getElementById('indexDisplay').innerText = idxTxt;
+            document.getElementById('modalIndex').innerText = idxTxt;
+            if (navTimeout) clearTimeout(navTimeout);
+            navTimeout = setTimeout(updateViewer, 50); 
+        }
+
+        async function updateViewer() {
+            if (taskData.images.length === 0) return;
+            const fileName = taskData.images[currentIndex];
+            document.getElementById('currentFileName').innerText = fileName;
+            const img = new Image();
+            img.src = `/api/image?folderPath=${encodeURIComponent(document.getElementById('taskPath').value.trim() + '\\images')}&fileName=${encodeURIComponent(fileName)}`;
+            try {
+                await img.decode();
+                window.currentImgElement = img;
+                Object.values(canvases).forEach(c => { if(c.id !== 'maxCanvas') { c.width = img.width; c.height = img.height; } });
+                [ctxs.orig, ctxs.label, ctxs.inf].forEach(ctx => { ctx.clearRect(0, 0, img.width, img.height); ctx.drawImage(img, 0, 0); });
+                currentPolygons.gt = prepareData(taskData.gt, fileName, 'gt');
+                currentPolygons.pred = prepareData(taskData.pred, fileName, 'pred');
+                drawOverlaysOnly();
+                if (document.getElementById('maxModal').style.display === 'flex') refreshModal();
+            } catch (err) { console.error(err); }
+        }
+
+        function drawOverlaysOnly() {
+            [ctxs.ovOrig, ctxs.ovLabel, ctxs.ovInf].forEach(ctx => ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height));
+            drawPolygons(ctxs.ovLabel, currentPolygons.gt, hoveredGTIdx, '#2ecc71');
+            drawPolygons(ctxs.ovInf, currentPolygons.pred, hoveredPredIdx, '#3498db');
+            const updateStats = (id, polys) => {
+                const cc = new Set(polys.map(p => p.name)).size;
+                document.getElementById(id).innerText = `Classes: ${cc}, Blobs: ${polys.length}`;
+            };
+            updateStats('countLabel', currentPolygons.gt); updateStats('countPred', currentPolygons.pred);
+        }
+
+        function drawPolygons(ctx, polys, hoveredIdx, debugColor) {
+            polys.forEach((p, idx) => {
+                ctx.strokeStyle = p.color; ctx.fillStyle = p.color.replace(/[^,]+(?=\))/, '0.5'); ctx.lineWidth = 2;
+                ctx.beginPath(); p.points.forEach((pt, i) => { if (i === 0) ctx.moveTo(pt[0], pt[1]); else ctx.lineTo(pt[0], pt[1]); }); ctx.closePath(); ctx.fill(); ctx.stroke();
+                if (idx === hoveredIdx) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6; ctx.stroke(); ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.stroke(); }
+            });
+        }
+
+        function handleMouseMove(e) {
+            const rect = e.target.getBoundingClientRect();
+            const mx = (e.clientX - rect.left) * (e.target.width / rect.width);
+            const my = (e.clientY - rect.top) * (e.target.height / rect.height);
+            hoveredGTIdx = currentPolygons.gt.findIndex(p => isNearPoly(mx, my, p.points));
+            hoveredPredIdx = currentPolygons.pred.findIndex(p => isNearPoly(mx, my, p.points));
+            if (hoveredGTIdx !== -1 || hoveredPredIdx !== -1) {
+                tooltip.style.display = 'block'; tooltip.style.left = (e.clientX + 20) + 'px'; tooltip.style.top = (e.clientY + 20) + 'px';
+                let content = "";
+                if (hoveredGTIdx !== -1) { const p = currentPolygons.gt[hoveredGTIdx]; content += `<div class="tt-gt">GT: ${p.name} (${Math.round(p.area)}px²)</div>`; }
+                if (hoveredPredIdx !== -1) { const p = currentPolygons.pred[hoveredPredIdx]; content += `<div class="tt-pred">PRED: ${p.name} (${Math.round(p.area)}px²)</div>`; }
+                tooltip.innerHTML = content;
+            } else tooltip.style.display = 'none';
+            drawOverlaysOnly();
+        }
+
+        function openModal(type) { activeModalTab = type; resetZoom(); document.getElementById('maxModal').style.display = 'flex'; refreshModal(); }
+        function closeModal() { document.getElementById('maxModal').style.display = 'none'; }
+        function switchModalTab(type) { activeModalTab = type; refreshModal(); }
+        
+        function refreshModal() {
+            const img = window.currentImgElement; if (!img) return;
+            canvases.max.width = img.width; canvases.max.height = img.height;
+            ctxs.max.clearRect(0, 0, img.width, img.height);
+            ctxs.max.drawImage(img, 0, 0);
+            if (activeModalTab === 'label') drawPolygons(ctxs.max, currentPolygons.gt, -1);
+            else if (activeModalTab === 'inf') drawPolygons(ctxs.max, currentPolygons.pred, -1);
+            document.getElementById('modalFilename').innerText = taskData.images[currentIndex];
+            document.getElementById('modalIndex').innerText = `${currentIndex + 1} / ${taskData.images.length}`;
+            document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + (activeModalTab==='orig'?'orig':(activeModalTab==='label'?'label':'inf'))).classList.add('active');
+            applyTransform();
+        }
+
+        function adjustZoom(delta) { zoomScale = Math.min(Math.max(0.1, zoomScale + delta), 15); document.getElementById('zoomLevel').innerText = Math.round(zoomScale * 100) + "%"; applyTransform(); }
+        function resetZoom() { zoomScale = 1.0; translateX = 0; translateY = 0; document.getElementById('zoomLevel').innerText = "100%"; applyTransform(); }
+        function applyTransform() { document.getElementById('maxCanvas').style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomScale})`; }
+
+        function prepareData(source, fileName, type) {
+            if (!source) return [];
+            const rule = ModelRules[taskData.modelType] || ModelRules['seg'];
+            const res = [];
+            if (type === 'gt' && source.data) {
+                const entry = source.data.find(d => getPureFileName(d.fileName) === getPureFileName(fileName));
+                if (entry && entry.regionLabel) entry.regionLabel.forEach(r => { const p = rule.parseGT(r); if (p) res.push(processData(p, r.className, source.classes, type)); });
+            } else if (type === 'pred' && source.images) {
+                const img = source.images.find(i => getPureFileName(i.file_name) === getPureFileName(fileName));
+                if (img) (taskData.indexedPred[String(img.id)] || []).forEach(a => { const p = rule.parsePred(a); const cat = source.categories.find(c => String(c.id) === String(a.category_id)); if (p) res.push(processData(p, cat ? cat.name : "Unknown", source.categories, type, cat)); });
+            }
+            return res;
+        }
+
+        function processData(p, name, classes, type, catObj) {
+            let pts = (p.type === 'polygon') ? p.points : (p.type === 'rotated_rect') ? getRotatedRectPoints(p.cx, p.cy, p.w, p.h, p.angle) : [[p.x, p.y], [p.x+p.w, p.y], [p.x+p.w, p.y+p.h], [p.x, p.y+p.h]];
+            let color = 'rgba(255,0,0,1)';
+            const found = classes.find(c => (c.name || "").toLowerCase().trim() === (name || "").toLowerCase().trim());
+            if (found && found.color) color = Array.isArray(found.color) ? `rgba(${found.color[0]},${found.color[1]},${found.color[2]},1)` : found.color;
+            let area = 0; for(let i=0;i<pts.length;i++){let j=(i+1)%pts.length; area+=pts[i][0]*pts[j][1]; area-=pts[j][0]*pts[i][1];}
+            return { points: pts, name, area: Math.abs(area)/2, color, cx: p.cx, cy: p.cy, angle: p.angle || 0 };
+        }
+
+        function isNearPoly(x, y, poly) { let inside = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1]; if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside; } if (inside) return true; for (let i = 0; i < poly.length; i++) { if (Math.sqrt(Math.pow(x-poly[i][0],2)+Math.pow(y-poly[i][1],2)) < 15) return true; } return false; }
+        function getPureFileName(path) { return path ? path.split(/[\\/]/).pop().toLowerCase() : ""; }
+        
+        function updateMetadata(data) {
+            if (!data.gt) return;
+            const typeKey = taskData.modelType.toLowerCase();
+            const fullName = MODEL_TYPE_MAP[typeKey] || taskData.modelType.toUpperCase();
+            document.getElementById('metaPanel').style.display = 'block';
+            document.getElementById('metaModelType').innerText = `${typeKey.toUpperCase()} (${fullName})`;
+            document.getElementById('metaTrainCount').innerText = data.gt.data ? data.gt.data.filter(d => d.set === 'train').length.toLocaleString() : 0;
+            document.getElementById('metaInfCount').innerText = (data.pred && data.pred.images ? data.pred.images.length : 0).toLocaleString();
+            document.getElementById('metaResolution').innerText = data.gt.data.length > 0 ? `${data.gt.data[0].width} x ${data.gt.data[0].height}` : "N/A";
+            if (data.metrics) {
+                const m = data.metrics; const fmt = (v) => v ? (v * 100).toFixed(2) + "%" : "N/A";
+                document.getElementById('mAccuracy').innerText = fmt(m["test/neurocle_accuracy"]);
+                document.getElementById('mPrecision').innerText = fmt(m["test/neurocle_precision"]);
+                document.getElementById('mRecall').innerText = fmt(m["test/neurocle_recall"]);
+                document.getElementById('mF1').innerText = fmt(m["test/neurocle_f1"]);
+            }
+        }
+    </script>
+</body>
+</html>

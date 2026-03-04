@@ -1,0 +1,16 @@
+# Dependency
+node_modules/
+
+# Sensitive Data (Local Path Reference)
+ref/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment Variables
+.env
+
+# System Files
+.DS_Store
+Thumbs.db
