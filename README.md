@@ -7,11 +7,11 @@
 ## 📺 프로젝트 시연
 
 ### 1. SEG (Segmentation) 분석
-![SEG Analysis](./ref/SEG_images.png)
+![SEG Analysis](./images/SEG_images.png)
 *세그멘테이션 모델의 GT와 Pred 마스크 비교 및 실시간 면적 분석*
 
 ### 2. ORD (Oriented Object Detection) 분석
-![ORD Analysis](./ref/ORD_images.png)
+![ORD Analysis](./images/ORD_images.png)
 *회전 박스 모델의 정확한 위치 매핑 및 각도 디버깅*
 
 ---
