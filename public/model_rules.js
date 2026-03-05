@@ -7,10 +7,14 @@ const ModelRules = {
         },
         parsePred: (ann) => {
             if (ann.obox) return ModelRules.ord.parsePred(ann);
-            if (!ann.segmentation || !ann.segmentation[0]) return null;
+            let seg = ann.segmentation;
+            if (!seg) return null;
+            // COCO 스타일 nested array 또는 flat array 대응
+            let flat = Array.isArray(seg[0]) ? seg[0] : seg;
+            if (flat.length < 6) return null;
             const pts = [];
-            for (let i = 0; i < ann.segmentation[0].length; i += 2) {
-                pts.push([ann.segmentation[0][i], ann.segmentation[0][i+1]]);
+            for (let i = 0; i < flat.length; i += 2) {
+                pts.push([flat[i], flat[i+1]]);
             }
             return { points: pts, type: 'polygon' };
         }
@@ -24,9 +28,16 @@ const ModelRules = {
         parsePred: (ann) => {
             const d = ann.obox || ann.bbox;
             if (!d || d.length < 5) return null;
-            // 순서: [cx, cy, w, h, angle]
             return { cx: d[0], cy: d[1], w: d[2], h: d[3], angle: d[4], type: 'rotated_rect' };
         }
+    },
+    "rot": {
+        name: "ROT (Rotation)",
+        parseGT: (entry) => ({ 
+            angle: entry.rotation_angle !== undefined ? entry.rotation_angle : (entry.angle !== undefined ? entry.angle : (parseFloat(entry.classLabel) || 0)), 
+            type: 'rotation' 
+        }),
+        parsePred: (ann) => ({ angle: ann.angle || 0, type: 'rotation' })
     }
 };
 
