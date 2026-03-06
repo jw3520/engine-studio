@@ -172,14 +172,14 @@
                 <div class="upload-card" id="taskCard">
                     <span class="upload-label">Task 폴더</span>
                     <span class="upload-hint">images 및 labels.json 포함</span>
-                    <input type="file" id="taskInput" webkitdirectory directory multiple>
+                    <input type="file" id="taskInput" webkitdirectory directory multiple title="">
                     <span id="taskDirName" class="folder-name">선택된 폴더 없음</span>
                 </div>
                 
                 <div class="upload-card" id="outputCard" style="margin-top: 10px; border-style: dotted;">
                     <span class="upload-label">Output 폴더 (옵션)</span>
                     <span class="upload-hint">별도의 결과 폴더가 있을 경우</span>
-                    <input type="file" id="outputInput" webkitdirectory directory multiple>
+                    <input type="file" id="outputInput" webkitdirectory directory multiple title="">
                     <span id="outputDirName" class="folder-name">Task 내부 우선 탐색</span>
                 </div>
             </div>
@@ -295,7 +295,6 @@
         });
         window.addEventListener('mouseup', () => { isDragging = false; });
 
-        // 마우스 리스너를 pixi view뿐만 아니라 컨테이너 전체에 걸어 더 유연하게 작동하게 함
         [pixiGT.view, pixiPred.view].forEach(v => {
             v.addEventListener('mousemove', (e) => handleMouseMove(e));
             v.addEventListener('mouseleave', () => { 
@@ -392,6 +391,9 @@
                     worker.postMessage({ type: 'PROCESS_TASK_DATA', data: { gt, pred, images: Object.keys(fileMap.images) }, modelType: taskData.modelType });
                 } catch (err) { alert('데이터 로드 중 오류: ' + err.message); }
             }
+            
+            // [브라우저 파일 목록 툴팁 제거]
+            e.target.value = ""; 
         }
 
         function updateIndexDisplay() {
@@ -478,10 +480,10 @@
         function handleMouseMove(e) {
             if (taskData.modelType === 'rot') { tooltip.style.display = 'none'; return; }
             
-            // 현재 마우스가 올라간 뷰(GT 또는 PRED)의 Rect를 가져옴
-            const rect = e.currentTarget.getBoundingClientRect();
-            const mx = (e.clientX - rect.left) * (e.currentTarget.width / rect.width);
-            const my = (e.clientY - rect.top) * (e.currentTarget.height / rect.height);
+            // 호버가 일어난 뷰의 rect를 사용하여 공통 이미지 좌표 MX, MY 구하기
+            const rect = e.target.closest('.pixi-canvas').getBoundingClientRect();
+            const mx = (e.clientX - rect.left) * (pixiGT.view.width / rect.width);
+            const my = (e.clientY - rect.top) * (pixiGT.view.height / rect.height);
             
             const gtIdx = currentPolygons.gt.findIndex(p => isNearPoly(mx, my, p.points));
             const predIdx = currentPolygons.pred.findIndex(p => isNearPoly(mx, my, p.points));
@@ -511,7 +513,6 @@
             const viewer = document.getElementById('modalBody');
             const vRect = viewer.getBoundingClientRect();
             
-            // 이미지 배율 및 오프셋 역산 (translate -50%, -50% 고려)
             const mx = (e.clientX - (vRect.left + viewer.clientWidth / 2 + translateX)) / (baseScale * zoomScale) + canvas.width / 2;
             const my = (e.clientY - (vRect.top + viewer.clientHeight / 2 + translateY)) / (baseScale * zoomScale) + canvas.height / 2;
             
@@ -536,10 +537,13 @@
 
         function openModal(type) {
             activeModalTab = type; document.getElementById('maxModal').style.display = 'flex';
-            const img = window.currentImgElement; if (!img) return;
-            const viewer = document.getElementById('modalBody');
-            baseScale = Math.min(viewer.clientWidth / img.width, viewer.clientHeight / img.height);
-            resetZoom(); refreshModal();
+            // 레이아웃이 렌더링될 시간을 줌
+            setTimeout(() => {
+                const img = window.currentImgElement; if (!img) return;
+                const viewer = document.getElementById('modalBody');
+                baseScale = Math.min(viewer.clientWidth / img.width, viewer.clientHeight / img.height);
+                resetZoom(); refreshModal();
+            }, 10);
         }
 
         function closeModal() { document.getElementById('maxModal').style.display = 'none'; }
@@ -580,7 +584,6 @@
         function applyTransform() {
             const rot = (taskData.modelType === 'rot') ? (activeModalTab==='label'?currentROT.gt:(activeModalTab==='inf'?currentROT.pred:0)) : 0;
             const canvas = canvases.max; if (!canvas) return;
-            // CSS Centering: top 50%, left 50%, translate(-50%, -50%) 기반 정중앙 정렬
             canvas.style.transform = `translate(-50%, -50%) translate(${translateX}px, ${translateY}px) scale(${baseScale * zoomScale}) rotate(${rot}deg)`; 
         }
 
