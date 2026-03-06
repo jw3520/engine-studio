@@ -9,7 +9,6 @@ const ModelRules = {
             if (ann.obox) return ModelRules.ord.parsePred(ann);
             let seg = ann.segmentation;
             if (!seg) return null;
-            // COCO 스타일 nested array 또는 flat array 대응
             let flat = Array.isArray(seg[0]) ? seg[0] : seg;
             if (flat.length < 6) return null;
             const pts = [];
@@ -22,13 +21,22 @@ const ModelRules = {
     "ord": {
         name: "ORD (Oriented Object Detection)",
         parseGT: (r) => {
+            // ORD GT가 cx, cy 기반이 아닐 경우 seg 규칙 차용
+            if (r.cx === undefined && r.points) return ModelRules.seg.parseGT(r);
             if (r.cx === undefined) return null;
             return { cx: r.cx, cy: r.cy, w: r.width, h: r.height, angle: r.angle, type: 'rotated_rect' };
         },
         parsePred: (ann) => {
+            // ORD Pred가 obox가 아닌 segmentation으로 들어올 경우 대응
+            if (!ann.obox && ann.segmentation) return ModelRules.seg.parsePred(ann);
             const d = ann.obox || ann.bbox;
-            if (!d || d.length < 5) return null;
-            return { cx: d[0], cy: d[1], w: d[2], h: d[3], angle: d[4], type: 'rotated_rect' };
+            if (!d) return null;
+            if (d.length >= 5) {
+                return { cx: d[0], cy: d[1], w: d[2], h: d[3], angle: d[4], type: 'rotated_rect' };
+            } else if (d.length === 4) {
+                return { x: d[0], y: d[1], w: d[2], h: d[3], type: 'rect' };
+            }
+            return null;
         }
     },
     "rot": {

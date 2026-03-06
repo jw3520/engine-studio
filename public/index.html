@@ -2,186 +2,235 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Neuro-T Engine Studio</title>
+    <title>Neuro-T Engine Studio | Professional Analysis</title>
     <script src="https://pixijs.download/v7.3.2/pixi.min.js"></script>
     <script src="model_rules.js"></script>
     <style>
         :root { 
-            --primary-color: #3498db; --bg-color: #f4f7f6; --panel-bg: #ffffff; --text-color: #2c3e50; --meta-bg: #f8f9fa; 
-            --gt-color: #2ecc71; --pred-color: #3498db; --gt-bg: rgba(46, 204, 113, 0.12); --pred-bg: rgba(52, 152, 219, 0.12);
+            --primary: #4f46e5; --primary-hover: #4338ca; --secondary: #64748b;
+            --bg: #f8fafc; --sidebar-bg: #ffffff; --card-bg: #ffffff;
+            --text-main: #1e293b; --text-muted: #64748b;
+            --gt: #10b981; --pred: #3b82f6;
+            --border: #e2e8f0; --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        header { background-color: var(--panel-bg); padding: 0.8rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 100; }
-        .container { display: flex; flex: 1; overflow: hidden; padding: 1rem; gap: 1rem; }
         
-        .sidebar { width: 380px; background-color: var(--panel-bg); padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
-        .input-group { display: flex; flex-direction: column; gap: 0.4rem; }
-        input { padding: 0.7rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; width: 100%; box-sizing: border-box; }
-        button { padding: 0.9rem; background-color: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* 테스트 태그 스타일 */
-        .test-tag-container { display: none; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
-        .test-tag { background: #eee; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; cursor: pointer; border: 1px solid #ccc; transition: all 0.2s; }
-        .test-tag:hover { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+        /* Header */
+        header { background: #1e293b; color: white; padding: 0.75rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); z-index: 100; }
+        .logo-area { display: flex; align-items: center; gap: 12px; }
+        .logo-text { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.025em; }
+        .version-badge { background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500; }
 
-        .meta-panel { background: var(--meta-bg); border-radius: 6px; padding: 12px; border: 1px solid #e1e4e8; margin-top: 5px; }
-        .meta-title { font-size: 0.8rem; font-weight: bold; color: #7f8c8d; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
-        .meta-item { display: flex; justify-content: space-between; padding: 3px 0; font-size: 0.85rem; }
-        .meta-value { font-weight: bold; color: var(--primary-color); }
-        .metric-value { font-weight: bold; color: #e67e22; }
+        .container { display: flex; flex: 1; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar { width: 360px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; padding: 1.5rem; gap: 1.5rem; }
+        .section-title { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 8px; }
+        
+        .upload-card { background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 1.25rem; transition: all 0.2s; position: relative; }
+        .upload-card:hover { border-color: var(--primary); background: #eef2ff; }
+        .upload-card.active { border-color: var(--gt); background: #ecfdf5; border-style: solid; }
+        .upload-label { font-size: 0.875rem; font-weight: 600; display: block; margin-bottom: 4px; }
+        .upload-hint { font-size: 0.75rem; color: var(--text-muted); }
+        .folder-name { font-size: 0.8rem; font-weight: 700; color: var(--primary); margin-top: 8px; display: block; word-break: break-all; }
+        
+        input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+        .meta-panel { background: white; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow); padding: 1rem; }
+        .meta-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-val { font-weight: 700; color: var(--primary); }
+
+        .perf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0.5rem; }
+        .perf-item { background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
+        .perf-label { font-size: 0.7rem; color: var(--text-muted); display: block; }
+        .perf-val { font-size: 1rem; font-weight: 800; color: #334155; }
 
         .class-legend { display: flex; flex-direction: column; gap: 5px; margin-top: 5px; }
         .legend-item { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; padding: 2px 0; }
-        .color-box { width: 14px; height: 14px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.2); }
+        .color-box { width: 14px; height: 14px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.2); display: inline-block; vertical-align: middle; }
 
-        .viewer-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; overflow-y: auto; }
-        .view-panel { background: #1a1a1a; border-radius: 8px; position: relative; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; overflow: hidden; }
+        /* Main Workspace */
+        .workspace { flex: 1; display: flex; flex-direction: column; padding: 1.5rem; gap: 1rem; overflow: hidden; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; }
+        .file-info { background: white; padding: 0.5rem 1.25rem; border-radius: 9999px; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+        .file-name { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 600; color: #334155; }
         
-        .canvas-container { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .base-canvas { position: absolute; max-width: 95%; max-height: 95%; object-fit: contain; z-index: 1; pointer-events: none; }
-        .pixi-canvas { position: absolute; max-width: 95%; max-height: 95%; object-fit: contain; z-index: 2; cursor: crosshair; }
-
-        .view-label { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.8); color: #fff; padding: 5px 12px; border-radius: 4px; font-size: 0.85rem; z-index: 10; font-weight: bold; border: 1px solid #555; pointer-events: none; }
-        .max-btn { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #555; border-radius: 4px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 20; transition: all 0.2s; font-size: 18px; }
-        .max-btn:hover { background: var(--primary-color); border-color: white; }
-
-        .mask-counter { margin-top: 10px; color: #fff; background: #333; padding: 6px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; position: relative; z-index: 5; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .filename-display { margin-bottom: 10px; padding: 10px; background: #eee; border-radius: 4px; font-family: monospace; font-weight: bold; text-align: center; font-size: 1.1rem; border: 1px dashed #bbb; }
-        .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #bdc3c7; font-size: 2rem; gap: 20px; background: #1a1a1a; border-radius: 8px; border: 2px dashed #333; }
+        .viewer-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; overflow-y: auto; }
+        .view-card { background: #0f172a; border-radius: 16px; position: relative; border: 4px solid #1e293b; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); overflow: hidden; display: flex; flex-direction: column; align-items: center; }
         
-        .controls { margin-top: 1rem; display: flex; gap: 0.8rem; align-items: center; justify-content: center; background: var(--panel-bg); padding: 12px; border-radius: 8px; }
-        .jump-btn { background: #666 !important; min-width: 55px; }
-        
-        #areaTooltip { position: fixed; pointer-events: none; background: rgba(20,20,20,0.95); padding: 12px; border-radius: 8px; z-index: 3000; display: none; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); min-width: 220px; }
-        .tt-card { padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 5px solid #555; }
-        .tt-card.gt { background: var(--gt-bg); border-left-color: var(--gt-color); }
-        .tt-card.pred { background: var(--pred-bg); border-left-color: var(--pred-color); }
-        .tt-header { font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #888; margin-bottom: 6px; }
-        .tt-body { font-size: 1.1rem; font-family: monospace; color: white; font-weight: bold; display: flex; align-items: center; gap: 10px; }
-        .tt-area { font-size: 0.85rem; color: #bbb; margin-top: 4px; font-family: monospace; }
+        .canvas-wrap { position: relative; width: 100%; flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
+        .pixi-canvas { position: absolute; max-width: 96%; max-height: 96%; object-fit: contain; z-index: 2; cursor: crosshair; }
+        .base-canvas { position: absolute; max-width: 96%; max-height: 96%; object-fit: contain; z-index: 1; pointer-events: none; }
 
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.98); flex-direction: column; }
-        .modal-header { width: 100%; padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; color: white; background: rgba(255,255,255,0.05); box-sizing: border-box; }
-        .modal-tabs { display: flex; gap: 5px; background: #333; padding: 5px; border-radius: 6px; }
-        .modal-tab { padding: 8px 20px; border-radius: 4px; border: none; background: transparent; color: #bbb; cursor: pointer; font-weight: bold; }
-        .modal-tab.active { background: var(--primary-color); color: white; }
-        .modal-main { flex: 1; display: flex; width: 100%; overflow: hidden; }
-        .modal-body { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: grab; }
-        .modal-side-panel { width: 340px; background: rgba(15,15,15,0.95); border-left: 1px solid #333; padding: 20px; color: white; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
-        .analysis-card { border-radius: 8px; padding: 18px; border-left: 6px solid #333; background: rgba(255,255,255,0.02); margin-bottom: 10px; opacity: 0.4; transition: all 0.3s; }
-        .analysis-card.active.gt { opacity: 1; background: var(--gt-bg); border-left-color: var(--gt-color); }
-        .analysis-card.active.pred { opacity: 1; background: var(--pred-bg); border-left-color: var(--pred-color); }
-        #maxCanvas { transform-origin: center; }
-        .modal-footer { width: 100%; padding: 10px; color: #fff; background: rgba(0,0,0,0.5); text-align: center; font-weight: bold; font-family: monospace; font-size: 1.1rem; }
+        .badge { position: absolute; top: 1rem; left: 1rem; padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; z-index: 10; color: white; text-transform: uppercase; }
+        .badge.gt { background: var(--gt); }
+        .badge.pred { background: var(--pred); }
+        .badge.orig { background: #64748b; }
+        
+        .btn-max { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; z-index: 20; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .btn-max:hover { background: var(--primary); scale: 1.1; }
+
+        .counter { background: #1e293b; color: #cbd5e1; padding: 6px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; margin-bottom: 12px; z-index: 5; border: 1px solid #334155; }
+
+        /* Controls */
+        .bottom-controls { background: white; padding: 0.75rem 2rem; border-radius: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 1rem; }
+        .nav-btn { background: #f1f5f9; border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; transition: all 0.2s; color: #475569; position: relative; }
+        .nav-btn:hover { background: #e2e8f0; color: var(--text-main); }
+        .nav-btn.primary { background: var(--primary); color: white; border: none; }
+        .nav-btn.primary:hover { background: var(--primary-hover); }
+        .idx-display { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 800; min-width: 120px; text-align: center; }
+
+        /* Tooltip */
+        #areaTooltip { position: fixed; pointer-events: none; background: rgba(15, 23, 42, 0.95); padding: 12px; border-radius: 12px; z-index: 3000; display: none; border: 1px solid #334155; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5); min-width: 200px; color: white; }
+        .tt-item { border-left: 4px solid #555; padding-left: 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .tt-item.gt { border-color: var(--gt); }
+        .tt-item.pred { border-color: var(--pred); }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: #0f172a; flex-direction: column; }
+        .modal-header { padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; }
+        .modal-content { flex: 1; display: flex; overflow: hidden; }
+        .modal-viewer { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; cursor: grab; overflow: hidden; }
+        .modal-side { width: 320px; background: #1e293b; padding: 1.5rem; color: white; border-left: 1px solid #334155; overflow-y: auto; }
+        
+        .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); background: white; border-radius: 20px; border: 2px dashed var(--border); }
     </style>
 </head>
 <body>
-    <header><h2 style="margin:0; color:var(--primary-color);">🚀 Neuro-T Engine Studio</h2></header>
+    <header>
+        <div class="logo-area">
+            <span style="font-size: 1.5rem;">🎯</span>
+            <div class="logo-text">NEURO-T <span style="color:#818cf8">ENGINE STUDIO</span></div>
+            <span class="version-badge">v2.0 Web</span>
+        </div>
+        <div id="statusIndicator" style="font-size: 0.8rem; color: #94a3b8; font-weight: 500;">Ready for data selection...</div>
+    </header>
 
     <div id="areaTooltip"></div>
 
     <div id="maxModal" class="modal">
         <div class="modal-header">
-            <div class="modal-tabs">
-                <button id="tab-orig" class="modal-tab" onclick="switchModalTab('orig')">Original (1)</button>
-                <button id="tab-label" class="modal-tab" onclick="switchModalTab('label')">GT Labels (2)</button>
-                <button id="tab-inf" class="modal-tab" onclick="switchModalTab('inf')">PRED Inference (3)</button>
+            <div style="display:flex; gap:10px;">
+                <button class="nav-btn primary" onclick="switchModalTab('orig')" id="tab-orig">Original [1]</button>
+                <button class="nav-btn" onclick="switchModalTab('label')" id="tab-label">GT Labels [2]</button>
+                <button class="nav-btn" onclick="switchModalTab('inf')" id="tab-inf">Prediction [3]</button>
             </div>
-            <div id="modalFilename" style="font-family: monospace; font-weight: bold; color: #fff; flex: 1; text-align: center;">-</div>
-            <div style="display:flex; gap:15px; align-items:center;">
-                <span id="zoomLevel" style="font-family: monospace;">100%</span>
-                <button class="modal-tab" style="background:#444;" onclick="adjustZoom(0.2)">+</button>
-                <button class="modal-tab" style="background:#444;" onclick="adjustZoom(-0.2)">-</button>
-                <button class="modal-tab" style="background:#444;" onclick="resetZoom()">Reset</button>
-                <span style="cursor:pointer; font-size:35px; margin-left:15px;" onclick="closeModal()">&times;</span>
+            <div id="modalFilename" style="color:white; font-family:monospace; font-weight:bold;">-</div>
+            <div style="display:flex; gap:15px; align-items:center; color:white;">
+                <span id="modalIndex" style="font-family:monospace; margin-right:10px;">0 / 0</span>
+                <span id="zoomLevel">100%</span>
+                <span style="cursor:pointer; font-size:2rem;" onclick="closeModal()">&times;</span>
             </div>
         </div>
-        <div class="modal-main">
-            <div class="modal-body" id="modalBody"><canvas id="maxCanvas"></canvas></div>
-            <div class="modal-side-panel">
-                <div class="meta-title" style="color:#fff; border-bottom-color: #444;">Comparison Analysis</div>
-                <div id="cardGT" class="analysis-card gt active">
-                    <div class="tt-header">GROUND TRUTH</div>
-                    <div class="tt-body"><span id="colorGT" class="color-box" style="display:none;"></span><span id="valGTClass">-</span></div>
-                    <div id="valGTArea" class="tt-area">Area: - px²</div>
+        <div class="modal-content">
+            <div class="modal-viewer" id="modalBody"><canvas id="maxCanvas" style="position: absolute;"></canvas></div>
+            <div class="modal-side">
+                <div class="section-title" style="color:#94a3b8">Detailed Analysis</div>
+                <div id="cardGT" class="meta-panel" style="background:#0f172a; border-color:#334155; margin-bottom:12px;">
+                    <div style="color:var(--gt); font-size:0.7rem; font-weight:800; margin-bottom:4px;">GROUND TRUTH</div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span id="colorGT" class="color-box" style="display:none;"></span>
+                        <div id="valGTClass" style="font-weight:bold; font-size:1.1rem;">-</div>
+                    </div>
+                    <div id="valGTArea" style="font-size:0.8rem; color:#94a3b8; margin-top:4px;">Area: -</div>
                 </div>
-                <div id="cardPred" class="analysis-card pred active">
-                    <div class="tt-header">PREDICTION</div>
-                    <div class="tt-body"><span id="colorPred" class="color-box" style="display:none;"></span><span id="valPredClass">-</span></div>
-                    <div id="valPredArea" class="tt-area">Area: - px²</div>
+                <div id="cardPred" class="meta-panel" style="background:#0f172a; border-color:#334155;">
+                    <div style="color:var(--pred); font-size:0.7rem; font-weight:800; margin-bottom:4px;">PREDICTION</div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span id="colorPred" class="color-box" style="display:none;"></span>
+                        <div id="valPredClass" style="font-weight:bold; font-size:1.1rem;">-</div>
+                    </div>
+                    <div id="valPredArea" style="font-size:0.8rem; color:#94a3b8; margin-top:4px;">Area: -</div>
                 </div>
-                <div class="meta-title" style="color:#fff; margin-top:10px; border-bottom-color: #444;">Project Classes</div>
-                <div id="modalClassLegend" class="class-legend"></div>
             </div>
         </div>
-        <div id="modalIndex" class="modal-footer">0 / 0</div>
     </div>
 
     <div class="container">
         <div class="sidebar">
-            <div class="input-group">
-                <label><b>Task Path</b></label>
-                <input type="text" id="taskPath" value="">
-                <div id="testTags" class="test-tag-container">
-                    <span class="test-tag" onclick="quickSetPath('')">SEG</span>
-                    <span class="test-tag" onclick="quickSetPath('')">ORD1</span>
-                    <span class="test-tag" onclick="quickSetPath('')">ORD2</span>
-                    <span class="test-tag" onclick="quickSetPath('')">ROT1</span>
-                    <span class="test-tag" onclick="quickSetPath('')">ROT2</span>
+            <div>
+                <div class="section-title">📂 Data Selection</div>
+                <div class="upload-card" id="taskCard">
+                    <span class="upload-label">Task 폴더</span>
+                    <span class="upload-hint">images 및 labels.json 포함</span>
+                    <input type="file" id="taskInput" webkitdirectory directory multiple>
+                    <span id="taskDirName" class="folder-name">선택된 폴더 없음</span>
+                </div>
+                
+                <div class="upload-card" id="outputCard" style="margin-top: 10px; border-style: dotted;">
+                    <span class="upload-label">Output 폴더 (옵션)</span>
+                    <span class="upload-hint">별도의 결과 폴더가 있을 경우</span>
+                    <input type="file" id="outputInput" webkitdirectory directory multiple>
+                    <span id="outputDirName" class="folder-name">Task 내부 우선 탐색</span>
                 </div>
             </div>
-            <div class="input-group">
-                <label><b>Output Path</b></label>
-                <input type="text" id="outputPath" value="">
-            </div>
-            <button id="loadBtn">🚀 데이터 불러오기</button>
 
             <div id="metaPanel" class="meta-panel" style="display:none;">
-                <div class="meta-title">Task Metadata</div>
-                <div class="meta-item"><span>Model Type</span><span class="meta-value" id="metaModelType">-</span></div>
-                <div class="meta-item"><span>Resolution</span><span class="meta-value" id="metaResolution">-</span></div>
-                <div class="meta-item"><span>Evaluate Images</span><span class="meta-value" id="metaInfCount">0</span></div>
-                <div class="meta-title" style="margin-top:10px;">Class Information</div>
+                <div class="section-title">📊 Dataset Meta</div>
+                <div class="meta-row"><span>Model Type</span><span class="meta-val" id="metaModelType">-</span></div>
+                <div class="meta-row"><span>Resolution</span><span class="meta-val" id="metaResolution">-</span></div>
+                <div class="meta-row"><span>Training Images</span><span class="meta-val" id="metaTrainCount">0</span></div>
+                <div class="meta-row"><span>Inference Images</span><span class="meta-val" id="metaInfCount">0</span></div>
+                
+                <div class="section-title" style="margin-top:1.5rem;">📈 Performance</div>
+                <div class="perf-grid">
+                    <div class="perf-item"><span class="perf-label">Accuracy</span><span class="perf-val" id="mAccuracy">-</span></div>
+                    <div class="perf-item"><span class="perf-label">F1-Score</span><span class="perf-val" id="mF1">-</span></div>
+                    <div class="perf-item"><span class="perf-label">Precision</span><span class="perf-val" id="mPrecision">-</span></div>
+                    <div class="perf-item"><span class="perf-label">Recall</span><span class="perf-val" id="mRecall">-</span></div>
+                </div>
+
+                <div class="section-title" style="margin-top:1.5rem;">🏷️ Classes</div>
                 <div id="sidebarClassLegend" class="class-legend"></div>
-                <div class="meta-title" style="margin-top:10px;">Performance</div>
-                <div class="meta-item"><span>Accuracy</span><span class="metric-value" id="mAccuracy">-</span></div>
-                <div class="meta-item"><span>Precision</span><span class="metric-value" id="mPrecision">-</span></div>
-                <div class="meta-item"><span>Recall</span><span class="metric-value" id="mRecall">-</span></div>
-                <div class="meta-item"><span>F1-Score</span><span class="metric-value" id="mF1">-</span></div>
             </div>
         </div>
 
-        <div id="mainWorkspace" style="flex:1; display:flex; flex-direction:column; gap:10px; overflow:hidden;">
-            <div class="filename-display" id="currentFileName">데이터를 불러와 주세요</div>
-            <div id="emptyDisplay" class="empty-state"><div>텅... 🍂</div></div>
+        <div class="workspace">
+            <div class="top-bar">
+                <div class="file-info">
+                    <span style="font-size:1.2rem;">📄</span>
+                    <span class="file-name" id="currentFileName">Waiting for selection...</span>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Use ⬅️ ➡️ keys to navigate</div>
+            </div>
+
+            <div id="emptyDisplay" class="empty-state">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">🔍</div>
+                <div style="font-weight: 700; font-size: 1.25rem; color: #334155;">No Data Loaded</div>
+                <div style="color: #94a3b8; margin-top: 0.5rem;">왼쪽 패널에서 Task 폴더를 선택하여 시작하세요.</div>
+            </div>
+
             <div id="viewerGrid" class="viewer-grid" style="display:none;">
-                <div class="view-panel">
-                    <div class="view-label">ORIGINAL</div>
-                    <button class="max-btn" onclick="openModal('orig')">⛶</button>
-                    <div class="canvas-container" id="contOrig"><canvas id="canvasOrig" class="base-canvas"></canvas></div>
-                    <div class="mask-counter" style="visibility:hidden;">Alignment</div>
+                <div class="view-card">
+                    <span class="badge orig">Original</span>
+                    <button class="btn-max" onclick="openModal('orig')">⛶</button>
+                    <div class="canvas-wrap"><canvas id="canvasOrig" class="base-canvas"></canvas></div>
+                    <div class="counter" style="visibility:hidden;">-</div>
                 </div>
-                <div class="view-panel" id="panelGT">
-                    <div class="view-label" style="color:var(--gt-color);">GT (LABELS)</div>
-                    <button class="max-btn" onclick="openModal('label')">⛶</button>
-                    <div class="canvas-container" id="contGT"><canvas id="canvasLabel" class="base-canvas"></canvas></div>
-                    <div class="mask-counter" id="countLabel">Classes: 0, Blobs: 0</div>
+                <div class="view-card">
+                    <span class="badge gt">Ground Truth</span>
+                    <button class="btn-max" onclick="openModal('label')">⛶</button>
+                    <div class="canvas-wrap" id="contGT"><canvas id="canvasLabel" class="base-canvas"></canvas></div>
+                    <div class="counter" id="countLabel">-</div>
                 </div>
-                <div class="view-panel" id="panelPred">
-                    <div class="view-label" style="color:var(--pred-color);">PRED (INFERENCE)</div>
-                    <button class="max-btn" onclick="openModal('inf')">⛶</button>
-                    <div class="canvas-container" id="contPred"><canvas id="canvasInference" class="base-canvas"></canvas></div>
-                    <div class="mask-counter" id="countPred">Classes: 0, Blobs: 0</div>
+                <div class="view-card">
+                    <span class="badge pred">Prediction</span>
+                    <button class="btn-max" onclick="openModal('inf')">⛶</button>
+                    <div class="canvas-wrap" id="contPred"><canvas id="canvasInference" class="base-canvas"></canvas></div>
+                    <div class="counter" id="countPred">-</div>
                 </div>
             </div>
-            <div class="controls" id="controlsPanel" style="visibility:hidden;">
-                <button id="prev100Btn" class="jump-btn">-100</button>
-                <button id="prev10Btn" class="jump-btn">-10</button>
-                <button id="prevBtn" style="background:#444;">⬅️</button>
-                <span id="indexDisplay" style="font-weight:bold; min-width:120px; text-align:center; font-size:1.1rem;">0 / 0</span>
-                <button id="nextBtn" style="background:#444;">➡️</button>
-                <button id="next10Btn" class="jump-btn">+10</button>
-                <button id="next100Btn" class="jump-btn">+100</button>
+
+            <div class="bottom-controls" id="controlsPanel" style="visibility:hidden;">
+                <button class="nav-btn" id="prev100Btn" title="단축키: Alt + ←">-100</button>
+                <button class="nav-btn" id="prev10Btn" title="단축키: Shift + ←">-10</button>
+                <button class="nav-btn primary" id="prevBtn" title="단축키: ←">PREV</button>
+                <div class="idx-display" id="indexDisplay">0 / 0</div>
+                <button class="nav-btn primary" id="nextBtn" title="단축키: →">NEXT</button>
+                <button class="nav-btn" id="next10Btn" title="단축키: Shift + →">+10</button>
+                <button class="nav-btn" id="next100Btn" title="단축키: Alt + →">+100</button>
             </div>
         </div>
     </div>
@@ -189,6 +238,8 @@
     <script>
         const MODEL_TYPE_MAP = { "cla": "Classification", "seg": "Segmentation", "obd": "Object Detection", "ord": "Oriented Object Detection", "rot": "Rotation" };
         let taskData = { images: [], gt: null, pred: null, metrics: null, modelType: 'seg', indexedPred: {} };
+        let fileMap = { images: {}, gtJson: null, predJson: null, metricsJson: null };
+        
         let currentIndex = 0; let currentPolygons = { gt: [], pred: [] };
         let currentROT = { gt: 0, pred: 0 };
         let zoomScale = 1.0; let isDragging = false;
@@ -205,7 +256,9 @@
         const ctxs = { orig: canvases.orig.getContext('2d'), label: canvases.label.getContext('2d'), inf: canvases.inf.getContext('2d'), max: canvases.max.getContext('2d') };
         const tooltip = document.getElementById('areaTooltip');
 
-        document.getElementById('loadBtn').addEventListener('click', loadTaskData);
+        document.getElementById('taskInput').addEventListener('change', (e) => handleFolderSelect(e, 'task'));
+        document.getElementById('outputInput').addEventListener('change', (e) => handleFolderSelect(e, 'output'));
+        
         document.getElementById('prevBtn').addEventListener('click', () => navigate(-1, true));
         document.getElementById('nextBtn').addEventListener('click', () => navigate(1, true));
         document.getElementById('prev10Btn').addEventListener('click', () => navigate(-10, false));
@@ -220,7 +273,12 @@
 
         [pixiGT.view, pixiPred.view].forEach(v => {
             v.addEventListener('mousemove', (e) => handleMouseMove(e));
-            v.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; drawOverlaysOnly(); });
+            v.addEventListener('mouseleave', () => { 
+                tooltip.style.display = 'none'; 
+                currentPolygons.gt.forEach(p => p.isCrossHighlighted = false);
+                currentPolygons.pred.forEach(p => p.isCrossHighlighted = false);
+                drawOverlaysOnly(); 
+            });
         });
 
         window.addEventListener('keydown', (e) => {
@@ -240,84 +298,87 @@
             if (e.data.type === 'TASK_DATA_PROCESSED') {
                 taskData.indexedPred = e.data.indexedPred;
                 taskData.images = e.data.finalImages;
-                console.log(`[Main] Task data processed in ${e.data.processTime}ms. Total images: ${taskData.images.length}`);
-                
                 document.getElementById('emptyDisplay').style.display = 'none';
                 document.getElementById('viewerGrid').style.display = 'grid';
                 document.getElementById('controlsPanel').style.visibility = 'visible';
-                
-                updateMetadata(taskData); 
-                currentIndex = 0;
-                
-                const displayTxt = taskData.images.length > 0 ? `1 / ${taskData.images.length}` : "0 / 0";
-                document.getElementById('indexDisplay').innerText = displayTxt;
-                document.getElementById('modalIndex').innerText = displayTxt;
-                
-                updateViewer();
+                updateMetadata(taskData); currentIndex = 0; updateIndexDisplay(); updateViewer();
             }
         };
 
-        // 테스트 모드 확인 및 퀵 태그 로직
-        if (window.location.pathname.endsWith('/test')) {
-            document.getElementById('testTags').style.display = 'flex';
-        }
+        async function handleFolderSelect(e, mode) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
 
-        function quickSetPath(path) {
-            document.getElementById('taskPath').value = path;
-            document.getElementById('outputPath').value = ""; // 자동 탐색을 위해 비움
-            loadTaskData();
-        }
+            const dirName = files[0].webkitRelativePath.split('/')[0];
+            const displayEl = document.getElementById(mode === 'task' ? 'taskDirName' : 'outputDirName');
+            const cardEl = document.getElementById(mode === 'task' ? 'taskCard' : 'outputCard');
+            if (displayEl) displayEl.innerText = dirName;
+            if (cardEl) cardEl.classList.add('active');
 
-        async function loadTaskData() {
-            const taskPath = document.getElementById('taskPath').value.trim();
-            const outputPath = document.getElementById('outputPath').value.trim();
-            
-            if (!taskPath) { alert('Task Path를 입력해주세요.'); return; }
+            if (mode === 'task') {
+                // Task 폴더 로드 시 Output 정보 리셋
+                fileMap.images = {}; fileMap.gtJson = null; fileMap.predJson = null; fileMap.metricsJson = null;
+                document.getElementById('outputDirName').innerText = "Task 내부 우선 탐색";
+                document.getElementById('outputCard').classList.remove('active');
 
-            console.log(`[Main] Loading task: ${taskPath}`);
-            try {
-                const response = await fetch(`/api/task-data?taskPath=${encodeURIComponent(taskPath)}&outputPath=${encodeURIComponent(outputPath)}`);
-                const data = await response.json();
-                
-                if (data.error) throw new Error(data.error);
-                if (!data.images || data.images.length === 0) {
-                    alert('이미지를 찾을 수 없습니다. 경로를 확인해주세요.');
-                    return;
-                }
-
-                const typeRaw = (data.gt ? data.gt.label_type : 'Segmentation').toLowerCase();
-                if (typeRaw.includes('segmentation') || typeRaw === 'seg') taskData.modelType = 'seg';
-                else if (typeRaw.includes('oriented') || typeRaw === 'ord') taskData.modelType = 'ord';
-                else if (typeRaw.includes('rotation') || typeRaw === 'rot') taskData.modelType = 'rot';
-                else taskData.modelType = 'seg';
-
-                taskData.gt = data.gt; 
-                taskData.pred = data.pred; 
-                taskData.metrics = data.metrics;
-
-                console.log(`[Main] Model Type: ${taskData.modelType}`);
-                if (!taskData.pred) console.warn('[Main] Prediction data is missing.');
-
-                worker.postMessage({
-                    type: 'PROCESS_TASK_DATA',
-                    data: { gt: data.gt, pred: data.pred, images: data.images },
-                    modelType: taskData.modelType
+                files.forEach(file => {
+                    const name = file.name.toLowerCase();
+                    if (/\.(jpg|jpeg|png|bmp)$/i.test(name)) fileMap.images[file.name] = file;
+                    if (name === 'labels.json') fileMap.gtJson = file;
+                    // Task 내부에서도 결과 파일 탐색
+                    if (!fileMap.predJson && ['predict_result.json', 'result.json', 'predict_results.json'].includes(name)) fileMap.predJson = file;
+                    if (!fileMap.metricsJson && name === 'metrics.json') fileMap.metricsJson = file;
                 });
-
-            } catch (err) { 
-                console.error(err);
-                alert('로드 실패: ' + err.message); 
+            } else {
+                // Output 폴더 개별 선택 시 덮어쓰기
+                files.forEach(file => {
+                    const name = file.name.toLowerCase();
+                    if (['predict_result.json', 'result.json', 'predict_results.json'].includes(name)) fileMap.predJson = file;
+                    if (name === 'metrics.json') fileMap.metricsJson = file;
+                });
             }
+
+            if (mode === 'task' && !fileMap.gtJson) {
+                alert('Task 폴더 내에서 labels.json을 찾을 수 없습니다.');
+                return;
+            }
+
+            if (fileMap.gtJson) {
+                try {
+                    const gt = JSON.parse(await fileMap.gtJson.text());
+                    const pred = fileMap.predJson ? JSON.parse(await fileMap.predJson.text()) : null;
+                    const metrics = fileMap.metricsJson ? JSON.parse(await fileMap.metricsJson.text()) : null;
+
+                    const typeRaw = (gt.label_type || 'Segmentation').toLowerCase();
+                    if (typeRaw.includes('segmentation') || typeRaw === 'seg') taskData.modelType = 'seg';
+                    else if (typeRaw.includes('oriented') || typeRaw === 'ord') taskData.modelType = 'ord';
+                    else if (typeRaw.includes('rotation') || typeRaw === 'rot') taskData.modelType = 'rot';
+                    else taskData.modelType = 'seg';
+
+                    taskData.gt = gt; taskData.pred = pred; taskData.metrics = metrics;
+
+                    worker.postMessage({
+                        type: 'PROCESS_TASK_DATA',
+                        data: { gt, pred, images: Object.keys(fileMap.images) },
+                        modelType: taskData.modelType
+                    });
+                } catch (err) { alert('데이터 로드 중 오류: ' + err.message); }
+            }
+        }
+
+        function updateIndexDisplay() {
+            const txt = taskData.images.length > 0 ? `${currentIndex + 1} / ${taskData.images.length}` : "0 / 0";
+            const el1 = document.getElementById('indexDisplay');
+            const el2 = document.getElementById('modalIndex');
+            if (el1) el1.innerText = txt;
+            if (el2) el2.innerText = txt;
         }
 
         function navigate(dir, isCircular) {
             if (taskData.images.length === 0) return;
             let newIdx = isCircular ? (currentIndex + dir + taskData.images.length) % taskData.images.length : Math.min(Math.max(0, currentIndex + dir), taskData.images.length - 1);
             if (newIdx !== currentIndex) {
-                currentIndex = newIdx;
-                const txt = `${currentIndex + 1} / ${taskData.images.length}`;
-                document.getElementById('indexDisplay').innerText = txt;
-                document.getElementById('modalIndex').innerText = txt;
+                currentIndex = newIdx; updateIndexDisplay();
                 if (navTimeout) clearTimeout(navTimeout);
                 navTimeout = setTimeout(updateViewer, 50); 
             }
@@ -326,14 +387,23 @@
         async function updateViewer() {
             if (taskData.images.length === 0) return;
             const fileName = taskData.images[currentIndex];
-            document.getElementById('currentFileName').innerText = fileName;
+            const fileNameEl = document.getElementById('currentFileName');
+            if (fileNameEl) fileNameEl.innerText = fileName;
+            
+            const file = fileMap.images[fileName];
+            if (!file) return;
+
+            const objectUrl = URL.createObjectURL(file);
             const img = new Image();
-            img.src = `/api/image?folderPath=${encodeURIComponent(document.getElementById('taskPath').value.trim() + '\\images')}&fileName=${encodeURIComponent(fileName)}`;
+            img.src = objectUrl;
+
             try {
                 await img.decode(); window.currentImgElement = img;
-                Object.values(canvases).forEach(c => { if(c.id !== 'maxCanvas') { c.width = img.width; c.height = img.height; } });
-                pixiGT.renderer.resize(img.width, img.height); pixiPred.renderer.resize(img.width, img.height);
-                [ctxs.orig, ctxs.label, ctxs.inf].forEach(ctx => { ctx.clearRect(0, 0, img.width, img.height); ctx.drawImage(img, 0, 0); });
+                Object.values(canvases).forEach(c => { if(c && c.id !== 'maxCanvas') { c.width = img.width; c.height = img.height; } });
+                if (pixiGT.renderer) pixiGT.renderer.resize(img.width, img.height);
+                if (pixiPred.renderer) pixiPred.renderer.resize(img.width, img.height);
+                
+                [ctxs.orig, ctxs.label, ctxs.inf].forEach(ctx => { if (ctx) { ctx.clearRect(0, 0, img.width, img.height); ctx.drawImage(img, 0, 0); } });
                 
                 if (taskData.modelType === 'rot') {
                     const rule = ModelRules['rot'];
@@ -342,37 +412,46 @@
                     const predAnn = taskData.indexedPred[pure] ? taskData.indexedPred[pure][0] : null;
                     currentROT.gt = entry ? rule.parseGT(entry).angle : 0;
                     currentROT.pred = predAnn ? rule.parsePred(predAnn).angle : 0;
-                    canvases.label.style.transform = `rotate(${currentROT.gt}deg)`;
-                    canvases.inf.style.transform = `rotate(${currentROT.pred}deg)`;
+                    if (canvases.label) canvases.label.style.transform = `rotate(${currentROT.gt}deg)`;
+                    if (canvases.inf) canvases.inf.style.transform = `rotate(${currentROT.pred}deg)`;
                 } else {
-                    canvases.label.style.transform = 'none'; canvases.inf.style.transform = 'none';
+                    if (canvases.label) canvases.label.style.transform = 'none'; 
+                    if (canvases.inf) canvases.inf.style.transform = 'none';
                     currentPolygons.gt = prepareData(taskData.gt, fileName, 'gt');
                     currentPolygons.pred = prepareData(taskData.pred, fileName, 'pred');
                 }
                 drawOverlaysOnly();
                 if (document.getElementById('maxModal').style.display === 'flex') refreshModal();
-            } catch (err) { console.error(err); }
+                setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
+            } catch (err) { console.error(err); if (objectUrl) URL.revokeObjectURL(objectUrl); }
         }
 
         function drawOverlaysOnly() {
             if (taskData.modelType === 'rot') {
-                document.getElementById('countLabel').innerText = `Angle: ${currentROT.gt.toFixed(2)}°`;
-                document.getElementById('countPred').innerText = `Angle: ${currentROT.pred.toFixed(2)}°`;
+                const gtEl = document.getElementById('countLabel');
+                const predEl = document.getElementById('countPred');
+                if (gtEl) gtEl.innerText = `Angle: ${currentROT.gt.toFixed(2)}°`;
+                if (predEl) predEl.innerText = `Angle: ${currentROT.pred.toFixed(2)}°`;
                 pixiGT.stage.removeChildren(); pixiPred.stage.removeChildren();
             } else {
                 renderPixiPolys(pixiGT, currentPolygons.gt, -1);
                 renderPixiPolys(pixiPred, currentPolygons.pred, -1);
-                const updateStats = (id, polys) => { const cc = new Set(polys.map(p => p.name)).size; document.getElementById(id).innerText = `Classes: ${cc}, Blobs: ${polys.length}`; };
+                const updateStats = (id, polys) => { 
+                    const el = document.getElementById(id); if (!el) return;
+                    const cc = new Set(polys.map(p => p.name)).size; el.innerText = `Classes: ${cc}, Blobs: ${polys.length}`; 
+                };
                 updateStats('countLabel', currentPolygons.gt); updateStats('countPred', currentPolygons.pred);
             }
         }
 
         function renderPixiPolys(app, polys, hoveredIdx) {
+            if (!app.stage) return;
             app.stage.removeChildren();
             const graphics = new PIXI.Graphics();
             polys.forEach((p, idx) => {
-                const color = parseColorToInt(p.color); const isHovered = (idx === hoveredIdx);
-                graphics.lineStyle(isHovered ? 6 : 2, isHovered ? 0xffffff : color, 1);
+                const color = parseColorToInt(p.color);
+                const isHighlighted = (idx === hoveredIdx) || (p.isCrossHighlighted);
+                graphics.lineStyle(isHighlighted ? 6 : 2, isHighlighted ? 0xffffff : color, 1);
                 graphics.beginFill(color, 0.5); graphics.drawPolygon(p.points.flat()); graphics.endFill();
             });
             app.stage.addChild(graphics);
@@ -384,34 +463,52 @@
         }
 
         function handleMouseMove(e) {
-            if (taskData.modelType === 'rot') {
-                tooltip.style.display = 'none';
-                return;
-            }
+            if (taskData.modelType === 'rot') { tooltip.style.display = 'none'; return; }
             const rect = e.target.getBoundingClientRect();
             const mx = (e.clientX - rect.left) * (e.target.width / rect.width);
             const my = (e.clientY - rect.top) * (e.target.height / rect.height);
+            
             const gtIdx = currentPolygons.gt.findIndex(p => isNearPoly(mx, my, p.points));
             const predIdx = currentPolygons.pred.findIndex(p => isNearPoly(mx, my, p.points));
+
+            currentPolygons.gt.forEach(p => p.isCrossHighlighted = false);
+            currentPolygons.pred.forEach(p => p.isCrossHighlighted = false);
+
+            if (gtIdx !== -1) {
+                currentPolygons.gt[gtIdx].isCrossHighlighted = true;
+                const hitPredIdx = currentPolygons.pred.findIndex(p => isNearPoly(mx, my, p.points));
+                if (hitPredIdx !== -1) currentPolygons.pred[hitPredIdx].isCrossHighlighted = true;
+            }
+            if (predIdx !== -1) {
+                currentPolygons.pred[predIdx].isCrossHighlighted = true;
+                const hitGTIdx = currentPolygons.gt.findIndex(p => isNearPoly(mx, my, p.points));
+                if (hitGTIdx !== -1) currentPolygons.gt[hitGTIdx].isCrossHighlighted = true;
+            }
+
             updateTooltip(e, gtIdx, predIdx);
+            drawOverlaysOnly();
         }
 
         function updateTooltip(e, gtIdx, predIdx) {
             if (gtIdx !== -1 || predIdx !== -1) {
                 tooltip.style.display = 'block'; tooltip.style.left = (e.clientX + 20) + 'px'; tooltip.style.top = (e.clientY + 20) + 'px';
                 let html = "";
-                if (gtIdx !== -1) { const p = currentPolygons.gt[gtIdx]; html += `<div class="tt-card gt"><div class="tt-header">GROUND TRUTH</div><div class="tt-body"><span class="color-box" style="background:${p.color}"></span>${p.name}</div></div>`; }
-                if (predIdx !== -1) { const p = currentPolygons.pred[predIdx]; html += `<div class="tt-card pred"><div class="tt-header">PREDICTION</div><div class="tt-body"><span class="color-box" style="background:${p.color}"></span>${p.name}</div></div>`; }
+                if (gtIdx !== -1) { 
+                    const p = currentPolygons.gt[gtIdx]; 
+                    html += `<div class="tt-item gt"><b>GT</b>: <span class="color-box" style="background:${p.color}"></span> ${p.name}</div>`; 
+                }
+                if (predIdx !== -1) { 
+                    const p = currentPolygons.pred[predIdx]; 
+                    html += `<div class="tt-item pred"><b>PRED</b>: <span class="color-box" style="background:${p.color}"></span> ${p.name}</div>`; 
+                }
                 tooltip.innerHTML = html;
             } else tooltip.style.display = 'none';
         }
 
         function handleModalHover(e) {
-            if (taskData.modelType === 'rot') {
-                tooltip.style.display = 'none';
-                return;
-            }
-            const canvas = canvases.max; const rect = canvas.getBoundingClientRect();
+            if (taskData.modelType === 'rot') { tooltip.style.display = 'none'; return; }
+            const canvas = canvases.max; if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
             const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
             const my = (e.clientY - rect.top) * (canvas.height / rect.height);
             const hitGT = currentPolygons.gt.find(p => isNearPoly(mx, my, p.points));
@@ -421,55 +518,61 @@
         }
 
         function updateAnalysisCard(cardId, data, classId, areaId, colorId) {
-            const card = document.getElementById(cardId);
-            const colorBox = document.getElementById(colorId);
+            const classEl = document.getElementById(classId);
+            const areaEl = document.getElementById(areaId);
+            const colorEl = document.getElementById(colorId);
+            if (!classEl || !areaEl || !colorEl) return;
 
             if (taskData.modelType === 'rot') {
-                card.classList.add('active');
-                colorBox.style.display = 'none';
-                document.getElementById(areaId).innerText = "";
-                if (cardId === 'cardGT') document.getElementById(classId).innerText = `Angle: ${currentROT.gt.toFixed(2)}°`;
-                else document.getElementById(classId).innerText = `Angle: ${currentROT.pred.toFixed(2)}°`;
-                return;
+                colorEl.style.display = 'none';
+                if (cardId === 'cardGT') classEl.innerText = `Angle: ${currentROT.gt.toFixed(2)}°`;
+                else classEl.innerText = `Angle: ${currentROT.pred.toFixed(2)}°`;
+                areaEl.innerText = ""; return;
             }
-
-            if (data) {
-                card.classList.add('active'); document.getElementById(classId).innerText = data.name;
-                document.getElementById(areaId).innerText = `Area: ${Math.round(data.area).toLocaleString()} px²`;
-                colorBox.style.display = 'inline-block'; colorBox.style.background = data.color;
-            } else {
-                card.classList.remove('active'); document.getElementById(classId).innerText = "-";
-                document.getElementById(areaId).innerText = "Area: - px²"; colorBox.style.display = 'none';
+            if (data) { 
+                colorEl.style.display = 'inline-block'; colorEl.style.background = data.color;
+                classEl.innerText = data.name; areaEl.innerText = `Area: ${Math.round(data.area).toLocaleString()} px²`; 
             }
+            else { colorEl.style.display = 'none'; classEl.innerText = "-"; areaEl.innerText = "Area: -"; }
         }
 
         function openModal(type) {
             activeModalTab = type; document.getElementById('maxModal').style.display = 'flex';
-            const img = window.currentImgElement;
-            const bodyRect = document.getElementById('modalBody').getBoundingClientRect();
-            baseScale = Math.min((bodyRect.width-40)/img.width, (bodyRect.height-40)/img.height, 1.0);
+            const img = window.currentImgElement; if (!img) return;
+            
+            // Fit-to-view 계산
+            const viewer = document.getElementById('modalBody');
+            const vw = viewer.clientWidth; const vh = viewer.clientHeight;
+            baseScale = Math.min(vw / img.width, vh / img.height);
+            
             resetZoom(); refreshModal();
         }
 
         function closeModal() { document.getElementById('maxModal').style.display = 'none'; }
-        function switchModalTab(type) { activeModalTab = type; refreshModal(); }
+        function switchModalTab(type) { 
+            activeModalTab = type; 
+            document.querySelectorAll('.modal-header .nav-btn').forEach(b => b.classList.remove('primary'));
+            const tabBtn = document.getElementById('tab-' + type); if (tabBtn) tabBtn.classList.add('primary');
+            refreshModal(); 
+        }
         
         function refreshModal() {
             const img = window.currentImgElement; if (!img) return;
-            canvases.max.width = img.width; canvases.max.height = img.height;
-            ctxs.max.clearRect(0, 0, img.width, img.height); ctxs.max.drawImage(img, 0, 0);
+            const canvas = canvases.max; if (!canvas) return;
+            canvas.width = img.width; canvas.height = img.height;
+            const ctx = ctxs.max; if (!ctx) return;
+            ctx.clearRect(0, 0, img.width, img.height); ctx.drawImage(img, 0, 0);
             if (taskData.modelType === 'rot') {
-                document.getElementById('valGTClass').innerText = `Angle: ${currentROT.gt.toFixed(2)}°`;
-                document.getElementById('valPredClass').innerText = `Angle: ${currentROT.pred.toFixed(2)}°`;
+                const gtClsEl = document.getElementById('valGTClass');
+                const predClsEl = document.getElementById('valPredClass');
+                if (gtClsEl) gtClsEl.innerText = `Angle: ${currentROT.gt.toFixed(2)}°`;
+                if (predClsEl) predClsEl.innerText = `Angle: ${currentROT.pred.toFixed(2)}°`;
             } else {
-                if (activeModalTab === 'label') drawPolygonsToCanvas(ctxs.max, currentPolygons.gt);
-                else if (activeModalTab === 'inf') drawPolygonsToCanvas(ctxs.max, currentPolygons.pred);
+                if (activeModalTab === 'label') drawPolygonsToCanvas(ctx, currentPolygons.gt);
+                else if (activeModalTab === 'inf') drawPolygonsToCanvas(ctx, currentPolygons.pred);
             }
-            document.getElementById('modalFilename').innerText = taskData.images[currentIndex];
-            document.getElementById('modalIndex').innerText = `${currentIndex + 1} / ${taskData.images.length}`;
-            document.getElementById('modalClassLegend').innerHTML = document.getElementById('sidebarClassLegend').innerHTML;
-            document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
-            document.getElementById('tab-' + (activeModalTab==='orig'?'orig':(activeModalTab==='label'?'label':'inf'))).classList.add('active');
+            const modalFnEl = document.getElementById('modalFilename');
+            if (modalFnEl) modalFnEl.innerText = taskData.images[currentIndex];
             applyTransform();
         }
 
@@ -480,22 +583,31 @@
             });
         }
 
-        function adjustZoom(delta) { zoomScale = Math.min(Math.max(0.1, zoomScale + delta), 20); document.getElementById('zoomLevel').innerText = Math.round(zoomScale * 100) + "%"; applyTransform(); }
-        function resetZoom() { zoomScale = 1.0; translateX = 0; translateY = 0; document.getElementById('zoomLevel').innerText = "100%"; applyTransform(); }
+        function adjustZoom(delta) { zoomScale = Math.min(Math.max(0.1, zoomScale + delta), 20); const zEl = document.getElementById('zoomLevel'); if (zEl) zEl.innerText = Math.round(zoomScale * 100) + "%"; applyTransform(); }
+        function resetZoom() { zoomScale = 1.0; translateX = 0; translateY = 0; const zEl = document.getElementById('zoomLevel'); if (zEl) zEl.innerText = "100%"; applyTransform(); }
+        
         function applyTransform() {
             const rot = (taskData.modelType === 'rot') ? (activeModalTab==='label'?currentROT.gt:(activeModalTab==='inf'?currentROT.pred:0)) : 0;
-            canvases.max.style.transform = `translate(${translateX}px, ${translateY}px) scale(${baseScale * zoomScale}) rotate(${rot}deg)`; 
+            const canvas = canvases.max; if (!canvas) return;
+            
+            // 중앙 정렬: 뷰어 중심에서 이미지 중심을 맞춤
+            const viewer = document.getElementById('modalBody');
+            const left = (viewer.clientWidth - canvas.width * baseScale * zoomScale) / 2 + translateX;
+            const top = (viewer.clientHeight - canvas.height * baseScale * zoomScale) / 2 + translateY;
+            
+            canvas.style.transformOrigin = "top left";
+            canvas.style.left = "0px"; canvas.style.top = "0px";
+            canvas.style.transform = `translate(${left}px, ${top}px) scale(${baseScale * zoomScale}) rotate(${rot}deg)`; 
         }
 
         function prepareData(source, fileName, type) {
             if (!source || taskData.modelType === 'rot') return [];
             const rule = ModelRules[taskData.modelType] || ModelRules['seg'];
-            const res = [];
-            const pure = getPureFileName(fileName);
+            const res = []; const pure = getPureFileName(fileName);
             if (type === 'gt' && source.data) {
                 const entry = source.data.find(d => getPureFileName(d.fileName) === pure);
                 if (entry && entry.regionLabel) entry.regionLabel.forEach(r => { const p = rule.parseGT(r); if (p) res.push(processData(p, r.className, source.classes, type)); });
-            } else if (type === 'pred' && source.images) {
+            } else if (type === 'pred') {
                 (taskData.indexedPred[pure] || []).forEach(a => { 
                     const p = rule.parsePred(a); 
                     const cat = source.categories.find(c => String(c.id) === String(a.category_id)); 
@@ -506,12 +618,12 @@
         }
 
         function processData(p, name, classes, type, catObj) {
-            let pts = (p.type === 'polygon') ? p.points : (p.type === 'rotated_rect') ? getRotatedRectPoints(p.cx, p.cy, p.w, p.h, p.angle) : [[p.x, p.y], [p.x+p.w, p.y], [p.x+p.w, p.y+p.h], [p.x, p.y+p.h]];
+            let pts = (p.type === 'polygon') ? p.points : (p.type === 'rotated_rect') ? getRotatedRectPoints(p.cx, p.cy, p.w, p.h, p.angle) : (p.type === 'rect' ? [[p.x, p.y], [p.x+p.w, p.y], [p.x+p.w, p.y+p.h], [p.x, p.y+p.h]] : [[p.x, p.y], [p.x+p.w, p.y], [p.x+p.w, p.y+p.h], [p.x, p.y+p.h]]);
             let color = 'rgba(255,0,0,1)';
             const found = (taskData.gt.classes || []).find(c => (c.name || "").toLowerCase().trim() === (name || "").toLowerCase().trim());
             if (found && found.color) color = Array.isArray(found.color) ? `rgba(${found.color[0]},${found.color[1]},${found.color[2]},1)` : found.color;
             let area = 0; for(let i=0;i<pts.length;i++){let j=(i+1)%pts.length; area+=pts[i][0]*pts[j][1]; area-=pts[j][0]*pts[i][1];}
-            return { points: pts, name, area: Math.abs(area)/2, color, cx: p.cx, cy: p.cy, angle: p.angle || 0 };
+            return { points: pts, name, area: Math.abs(area)/2, color, cx: p.cx, cy: p.cy, angle: p.angle || 0, isCrossHighlighted: false };
         }
 
         function isNearPoly(x, y, poly) { let inside = false; for (let i = 0, j = poly.length - 1; i < poly.length; i++) { const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1]; if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside; j = i; } if (inside) return true; for (let i = 0; i < poly.length; i++) { if (Math.sqrt(Math.pow(x-poly[i][0],2)+Math.pow(y-poly[i][1],2)) < 15) return true; } return false; }
@@ -521,32 +633,28 @@
             if (!data.gt) return;
             const typeKey = taskData.modelType;
             const fullName = MODEL_TYPE_MAP[typeKey] || data.gt.label_type;
-            document.getElementById('metaPanel').style.display = 'block';
-            document.getElementById('metaModelType').innerText = `${typeKey.toUpperCase()} (${fullName})`;
-            document.getElementById('metaInfCount').innerText = (data.pred && data.pred.images ? data.pred.images.length : 0).toLocaleString();
-            document.getElementById('metaResolution').innerText = data.gt.data.length > 0 ? `${data.gt.data[0].width} x ${data.gt.data[0].height}` : "N/A";
-            const sidebarLegend = document.getElementById('sidebarClassLegend'); sidebarLegend.innerHTML = '';
-            if (typeKey === 'rot') { 
-                const item = document.createElement('div'); item.className = 'legend-item';
-                item.innerHTML = `<span>해당 없음 (N/A)</span>`;
-                sidebarLegend.appendChild(item);
-            }
+            const metaPanel = document.getElementById('metaPanel'); if (metaPanel) metaPanel.style.display = 'block';
+            const mTypeEl = document.getElementById('metaModelType'); if (mTypeEl) mTypeEl.innerText = `${typeKey.toUpperCase()} (${fullName})`;
+            const trainCount = data.gt.data ? data.gt.data.filter(d => d.set === 'train').length : 0;
+            const mTrainEl = document.getElementById('metaTrainCount'); if (mTrainEl) mTrainEl.innerText = trainCount.toLocaleString();
+            const mInfEl = document.getElementById('metaInfCount'); if (mInfEl) mInfEl.innerText = (data.pred && data.pred.images ? data.pred.images.length : 0).toLocaleString();
+            const mResEl = document.getElementById('metaResolution'); if (mResEl) mResEl.innerText = data.gt.data.length > 0 ? `${data.gt.data[0].width} x ${data.gt.data[0].height}` : "N/A";
+            const sidebarLegend = document.getElementById('sidebarClassLegend'); if (!sidebarLegend) return;
+            sidebarLegend.innerHTML = '';
+            if (typeKey === 'rot') { sidebarLegend.innerHTML = '<div style="font-size:0.8rem; color:var(--text-muted)">N/A</div>'; }
             else {
-                const classes = data.gt.classes || [];
-                classes.forEach(c => {
+                (data.gt.classes || []).forEach(c => {
                     const colorStr = Array.isArray(c.color) ? `rgb(${c.color[0]},${c.color[1]},${c.color[2]})` : c.color;
                     const item = document.createElement('div'); item.className = 'legend-item';
                     item.innerHTML = `<span class="color-box" style="background:${colorStr}"></span><span>${c.name}</span>`;
                     sidebarLegend.appendChild(item);
                 });
             }
-            if (data.metrics) {
-                const m = data.metrics; const fmt = (v) => v ? (parseFloat(v) * 100).toFixed(2) + "%" : "N/A";
-                document.getElementById('mAccuracy').innerText = fmt(m["test/neurocle_accuracy"]);
-                document.getElementById('mPrecision').innerText = fmt(m["test/neurocle_precision"]);
-                document.getElementById('mRecall').innerText = fmt(m["test/neurocle_recall"]);
-                document.getElementById('mF1').innerText = fmt(m["test/neurocle_f1"]);
-            }
+            const fmtM = (m, k) => (m && m[k]) ? (parseFloat(m[k]) * 100).toFixed(2) + "%" : "N/A";
+            document.getElementById('mAccuracy').innerText = fmtM(data.metrics, "test/neurocle_accuracy");
+            document.getElementById('mF1').innerText = fmtM(data.metrics, "test/neurocle_f1");
+            document.getElementById('mPrecision').innerText = fmtM(data.metrics, "test/neurocle_precision");
+            document.getElementById('mRecall').innerText = fmtM(data.metrics, "test/neurocle_recall");
         }
     </script>
 </body>
