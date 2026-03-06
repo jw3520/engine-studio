@@ -1,0 +1,9 @@
+{
+  "name": "engine-studio",
+  "version": "2.0.0",
+  "description": "Static web-based analysis dashboard",
+  "private": true,
+  "scripts": {
+    "build": "echo 'No build step required'"
+  }
+}
