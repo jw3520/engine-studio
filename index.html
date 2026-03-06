@@ -477,10 +477,11 @@
 
         function handleMouseMove(e) {
             if (taskData.modelType === 'rot') { tooltip.style.display = 'none'; return; }
-            // 어떤 뷰를 가리키든 pixiGT.view 기준의 Rect를 사용하여 정규화된 좌표 MX, MY를 구함
-            const rect = pixiGT.view.getBoundingClientRect();
-            const mx = (e.clientX - rect.left) * (pixiGT.view.width / rect.width);
-            const my = (e.clientY - rect.top) * (pixiGT.view.height / rect.height);
+            
+            // 현재 마우스가 올라간 뷰(GT 또는 PRED)의 Rect를 가져옴
+            const rect = e.currentTarget.getBoundingClientRect();
+            const mx = (e.clientX - rect.left) * (e.currentTarget.width / rect.width);
+            const my = (e.clientY - rect.top) * (e.currentTarget.height / rect.height);
             
             const gtIdx = currentPolygons.gt.findIndex(p => isNearPoly(mx, my, p.points));
             const predIdx = currentPolygons.pred.findIndex(p => isNearPoly(mx, my, p.points));
