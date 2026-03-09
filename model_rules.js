@@ -45,7 +45,12 @@ const ModelRules = {
             angle: entry.rotation_angle !== undefined ? entry.rotation_angle : (entry.angle !== undefined ? entry.angle : (parseFloat(entry.classLabel) || 0)), 
             type: 'rotation' 
         }),
-        parsePred: (ann) => ({ angle: ann.angle || 0, type: 'rotation' })
+        parsePred: (ann) => {
+            let angle = ann.angle || 0;
+            // 사용자 요청 공식 적용: (-angle) % 360
+            let transformedAngle = (-angle) % 360;
+            return { angle: transformedAngle, type: 'rotation' };
+        }
     }
 };
 
