@@ -46,12 +46,12 @@ const ModelRules = {
             type: 'rotation' 
         }),
         parsePred: (ann) => {
-            let angle = ann.angle || 0;
-            // 추론된 공식 적용: (90 - Original_Angle)
-            let transformed = (90 - angle);
+            let angle = ann.angle !== undefined ? ann.angle : 0;
+            // 추론된 공식 적용: GT와 반대 방향 (360 - angle 또는 -angle)
+            let transformed = -angle;
             // -180 ~ 180 범위로 정규화
             while (transformed > 180) transformed -= 360;
-            while (transformed < -180) transformed += 360;
+            while (transformed <= -180) transformed += 360;
             return { angle: transformed, type: 'rotation' };
         }
     }
