@@ -16,7 +16,6 @@
         
         body { font-family: 'Inter', -apple-system, sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* Header */
         header { background: #1e293b; color: white; padding: 0.75rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); z-index: 100; }
         .logo-area { display: flex; align-items: center; gap: 12px; }
         .logo-text { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.025em; }
@@ -24,7 +23,6 @@
 
         .container { display: flex; flex: 1; overflow: hidden; }
 
-        /* Sidebar */
         .sidebar { width: 360px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; padding: 1.5rem; gap: 1.5rem; }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
         .section-title { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; margin: 0; }
@@ -87,22 +85,30 @@
         .nav-btn { background: #f1f5f9; border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; transition: all 0.2s; color: #475569; position: relative; }
         .nav-btn:hover { background: #e2e8f0; color: var(--text-main); }
         .nav-btn.primary { background: var(--primary); color: white; border: none; }
-        .nav-btn.primary:hover { background: var(--primary-hover); }
         .idx-display { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 800; min-width: 120px; text-align: center; }
 
-        /* Tooltip */
+        /* 탭 색상 클래스 */
+        .tab-orig.primary { background: #64748b !important; }
+        .tab-label.primary { background: var(--gt) !important; }
+        .tab-inf.primary { background: var(--pred) !important; }
+
+        /* Tooltip & Modal */
         #areaTooltip { position: fixed; pointer-events: none; background: rgba(15, 23, 42, 0.95); padding: 12px; border-radius: 12px; z-index: 3000; display: none; border: 1px solid #334155; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5); min-width: 200px; color: white; }
         .tt-item { border-left: 4px solid #555; padding-left: 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
         .tt-item.gt { border-color: var(--gt); }
         .tt-item.pred { border-color: var(--pred); }
         
-        /* Modal */
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: #0f172a; flex-direction: column; }
         .modal-header { padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; }
-        .modal-content { flex: 1; display: flex; overflow: hidden; }
+        .modal-content { flex: 1; display: flex; overflow: hidden; position: relative; }
         .modal-viewer { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; cursor: grab; overflow: hidden; }
         .modal-side { width: 320px; background: #1e293b; padding: 1.5rem; color: white; border-left: 1px solid #334155; overflow-y: auto; }
         
+        .modal-nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1); width: 60px; height: 100px; cursor: pointer; z-index: 2500; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; transition: all 0.2s; border-radius: 12px; }
+        .modal-nav-btn:hover { background: var(--primary); border-color: white; scale: 1.05; }
+        #modalPrev { left: 80px; }
+        #modalNext { right: 400px; } 
+
         .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); background: white; border-radius: 20px; border: 2px dashed var(--border); }
     </style>
 </head>
@@ -111,7 +117,7 @@
         <div class="logo-area">
             <span style="font-size: 1.5rem;">🎯</span>
             <div class="logo-text">NEURO-T <span style="color:#818cf8">ENGINE STUDIO</span></div>
-            <span class="version-badge">v2.0 Web</span>
+            <span class="version-badge">v1.0 Web</span>
         </div>
     </header>
 
@@ -120,9 +126,9 @@
     <div id="maxModal" class="modal">
         <div class="modal-header">
             <div style="display:flex; gap:10px;">
-                <button class="nav-btn primary" onclick="switchModalTab('orig')" id="tab-orig">Original [1]</button>
-                <button class="nav-btn" onclick="switchModalTab('label')" id="tab-label">GT Labels [2]</button>
-                <button class="nav-btn" onclick="switchModalTab('inf')" id="tab-inf">Prediction [3]</button>
+                <button class="nav-btn tab-orig" onclick="switchModalTab('orig')" id="tab-orig">ORIGINAL [1]</button>
+                <button class="nav-btn tab-label" onclick="switchModalTab('label')" id="tab-label">GROUND TRUTH [2]</button>
+                <button class="nav-btn tab-inf" onclick="switchModalTab('inf')" id="tab-inf">PREDICTION [3]</button>
             </div>
             <div id="modalFilename" style="color:white; font-family:monospace; font-weight:bold;">-</div>
             <div style="display:flex; gap:15px; align-items:center; color:white;">
@@ -132,9 +138,11 @@
             </div>
         </div>
         <div class="modal-content">
+            <button id="modalPrev" class="modal-nav-btn" onclick="navigate(-1, true)" title="이전 단축키 : ←&#13;-10 단축키 : Shift + ←&#13;-100 단축키 : Alt + ←">&#10094;</button>
             <div class="modal-viewer" id="modalBody">
                 <canvas id="maxCanvas" style="position: absolute; left: 50%; top: 50%; transform-origin: center;"></canvas>
             </div>
+            <button id="modalNext" class="modal-nav-btn" onclick="navigate(1, true)" title="다음 단축키 : →&#13;+10 단축키 : Shift + →&#13;+100 단축키 : Alt + →">&#10095;</button>
             <div class="modal-side">
                 <div class="section-title" style="color:#94a3b8">Detailed Analysis</div>
                 <div id="cardGT" class="meta-panel" style="background:#0f172a; border-color:#334155; margin-bottom:12px;">
@@ -243,9 +251,9 @@
             <div class="bottom-controls" id="controlsPanel" style="visibility:hidden;">
                 <button class="nav-btn" id="prev100Btn" title="단축키: Alt + ←">-100</button>
                 <button class="nav-btn" id="prev10Btn" title="단축키: Shift + ←">-10</button>
-                <button class="nav-btn primary" id="prevBtn" title="단축키: ←">PREV</button>
+                <button class="nav-btn primary" id="prevBtn" title="단축키: ←">이전</button>
                 <div class="idx-display" id="indexDisplay">0 / 0</div>
-                <button class="nav-btn primary" id="nextBtn" title="단축키: →">NEXT</button>
+                <button class="nav-btn primary" id="nextBtn" title="단축키: →">다음</button>
                 <button class="nav-btn" id="next10Btn" title="단축키: Shift + →">+10</button>
                 <button class="nav-btn" id="next100Btn" title="단축키: Alt + →">+100</button>
             </div>
@@ -358,6 +366,7 @@
 
             if (mode === 'task') {
                 fileMap.images = {}; fileMap.gtJson = null; fileMap.predJson = null; fileMap.metricsJson = null;
+                currentPolygons = { gt: [], pred: [] };
                 document.getElementById('outputDirName').innerText = "Task 내부 우선 탐색";
                 document.getElementById('outputCard').classList.remove('active');
                 files.forEach(file => {
@@ -391,8 +400,6 @@
                     worker.postMessage({ type: 'PROCESS_TASK_DATA', data: { gt, pred, images: Object.keys(fileMap.images) }, modelType: taskData.modelType });
                 } catch (err) { alert('데이터 로드 중 오류: ' + err.message); }
             }
-            
-            // [브라우저 파일 목록 툴팁 제거]
             e.target.value = ""; 
         }
 
@@ -405,7 +412,15 @@
         function navigate(dir, isCircular) {
             if (taskData.images.length === 0) return;
             let newIdx = isCircular ? (currentIndex + dir + taskData.images.length) % taskData.images.length : Math.min(Math.max(0, currentIndex + dir), taskData.images.length - 1);
-            if (newIdx !== currentIndex) { currentIndex = newIdx; updateIndexDisplay(); if (navTimeout) clearTimeout(navTimeout); navTimeout = setTimeout(updateViewer, 50); }
+            if (newIdx !== currentIndex) { 
+                currentIndex = newIdx; 
+                updateIndexDisplay(); 
+                if (navTimeout) clearTimeout(navTimeout); 
+                navTimeout = setTimeout(async () => {
+                    await updateViewer();
+                    if (document.getElementById('maxModal').style.display === 'flex') refreshModal();
+                }, 50); 
+            }
         }
 
         async function updateViewer() {
@@ -479,21 +494,17 @@
 
         function handleMouseMove(e) {
             if (taskData.modelType === 'rot') { tooltip.style.display = 'none'; return; }
-            
-            // 호버가 일어난 뷰의 rect를 사용하여 공통 이미지 좌표 MX, MY 구하기
-            const rect = e.target.closest('.pixi-canvas').getBoundingClientRect();
-            const mx = (e.clientX - rect.left) * (pixiGT.view.width / rect.width);
-            const my = (e.clientY - rect.top) * (pixiGT.view.height / rect.height);
-            
+            const target = e.target.closest('.pixi-canvas');
+            if (!target) return;
+            const rect = target.getBoundingClientRect();
+            const mx = (e.clientX - rect.left) * (target.width / rect.width);
+            const my = (e.clientY - rect.top) * (target.height / rect.height);
             const gtIdx = currentPolygons.gt.findIndex(p => isNearPoly(mx, my, p.points));
             const predIdx = currentPolygons.pred.findIndex(p => isNearPoly(mx, my, p.points));
-
             currentPolygons.gt.forEach(p => p.isCrossHighlighted = false);
             currentPolygons.pred.forEach(p => p.isCrossHighlighted = false);
-
             if (gtIdx !== -1) currentPolygons.gt[gtIdx].isCrossHighlighted = true;
             if (predIdx !== -1) currentPolygons.pred[predIdx].isCrossHighlighted = true;
-
             updateTooltip(e, gtIdx, predIdx); drawOverlaysOnly();
         }
 
@@ -508,18 +519,38 @@
         }
 
         function handleModalHover(e) {
-            if (taskData.modelType === 'rot') { tooltip.style.display = 'none'; return; }
+            if (taskData.modelType === 'rot') { 
+                updateAnalysisCard('cardGT', null, 'valGTClass', 'valGTArea', 'colorGT');
+                updateAnalysisCard('cardPred', null, 'valPredClass', 'valPredArea', 'colorPred');
+                tooltip.style.display = 'none'; return; 
+            }
             const canvas = canvases.max; if (!canvas) return;
             const viewer = document.getElementById('modalBody');
             const vRect = viewer.getBoundingClientRect();
+            const localX = e.clientX - vRect.left; const localY = e.clientY - vRect.top;
+            const scaledW = canvas.width * baseScale * zoomScale; const scaledH = canvas.height * baseScale * zoomScale;
+            const left = (viewer.clientWidth - scaledW) / 2 + translateX; const top = (viewer.clientHeight - scaledH) / 2 + translateY;
+            const mx = (localX - left) / (baseScale * zoomScale); const my = (localY - top) / (baseScale * zoomScale);
             
-            const mx = (e.clientX - (vRect.left + viewer.clientWidth / 2 + translateX)) / (baseScale * zoomScale) + canvas.width / 2;
-            const my = (e.clientY - (vRect.top + viewer.clientHeight / 2 + translateY)) / (baseScale * zoomScale) + canvas.height / 2;
-            
-            const hitGT = currentPolygons.gt.find(p => isNearPoly(mx, my, p.points));
-            const hitPred = currentPolygons.pred.find(p => isNearPoly(mx, my, p.points));
+            const gtIdx = currentPolygons.gt.findIndex(p => isNearPoly(mx, my, p.points));
+            const predIdx = currentPolygons.pred.findIndex(p => isNearPoly(mx, my, p.points));
+            currentPolygons.gt.forEach(p => p.isCrossHighlighted = false);
+            currentPolygons.pred.forEach(p => p.isCrossHighlighted = false);
+            let hitGT = null, hitPred = null;
+            if (gtIdx !== -1) { currentPolygons.gt[gtIdx].isCrossHighlighted = true; hitGT = currentPolygons.gt[gtIdx]; }
+            if (predIdx !== -1) { currentPolygons.pred[predIdx].isCrossHighlighted = true; hitPred = currentPolygons.pred[predIdx]; }
             updateAnalysisCard('cardGT', hitGT, 'valGTClass', 'valGTArea', 'colorGT');
             updateAnalysisCard('cardPred', hitPred, 'valPredClass', 'valPredArea', 'colorPred');
+            
+            const ctx = ctxs.max;
+            if (ctx && window.currentImgElement) {
+                ctx.clearRect(0, 0, canvases.max.width, canvases.max.height);
+                ctx.drawImage(window.currentImgElement, 0, 0);
+                if (taskData.modelType !== 'rot') {
+                    if (activeModalTab === 'label') drawPolygonsToCanvas(ctx, currentPolygons.gt);
+                    else if (activeModalTab === 'inf') drawPolygonsToCanvas(ctx, currentPolygons.pred);
+                }
+            }
         }
 
         function updateAnalysisCard(cardId, data, classId, areaId, colorId) {
@@ -536,8 +567,8 @@
         }
 
         function openModal(type) {
-            activeModalTab = type; document.getElementById('maxModal').style.display = 'flex';
-            // 레이아웃이 렌더링될 시간을 줌
+            activeModalTab = (type === 'label' ? 'label' : (type === 'inf' ? 'inf' : 'orig'));
+            document.getElementById('maxModal').style.display = 'flex';
             setTimeout(() => {
                 const img = window.currentImgElement; if (!img) return;
                 const viewer = document.getElementById('modalBody');
@@ -547,33 +578,45 @@
         }
 
         function closeModal() { document.getElementById('maxModal').style.display = 'none'; }
+        
         function switchModalTab(type) { 
-            activeModalTab = type; document.querySelectorAll('.modal-header .nav-btn').forEach(b => b.classList.remove('primary'));
-            const tabBtn = document.getElementById('tab-' + type); if (tabBtn) tabBtn.classList.add('primary');
-            refreshModal(); triggerUIUpdateAtLastMouse();
+            activeModalTab = type; 
+            document.querySelectorAll('.modal-header .nav-btn').forEach(b => b.classList.remove('primary'));
+            const tabBtn = document.getElementById('tab-' + type);
+            if (tabBtn) tabBtn.classList.add('primary');
+            
+            const ctx = ctxs.max;
+            if (ctx && window.currentImgElement) {
+                ctx.clearRect(0, 0, canvases.max.width, canvases.max.height);
+                ctx.drawImage(window.currentImgElement, 0, 0);
+                if (taskData.modelType !== 'rot') {
+                    if (activeModalTab === 'label') drawPolygonsToCanvas(ctx, currentPolygons.gt);
+                    else if (activeModalTab === 'inf') drawPolygonsToCanvas(ctx, currentPolygons.pred);
+                }
+            }
+            if (taskData.modelType === 'rot') {
+                updateAnalysisCard('cardGT', null, 'valGTClass', 'valGTArea', 'colorGT');
+                updateAnalysisCard('cardPred', null, 'valPredClass', 'valPredArea', 'colorPred');
+            }
+            triggerUIUpdateAtLastMouse();
+            applyTransform();
         }
         
         function refreshModal() {
             const img = window.currentImgElement; if (!img) return;
             const canvas = canvases.max; if (!canvas) return;
             canvas.width = img.width; canvas.height = img.height;
-            const ctx = ctxs.max; if (!ctx) return;
-            ctx.clearRect(0, 0, img.width, img.height); ctx.drawImage(img, 0, 0);
-            if (taskData.modelType === 'rot') {
-                const gtClsEl = document.getElementById('valGTClass'); const predClsEl = document.getElementById('valPredClass');
-                if (gtClsEl) gtClsEl.innerText = `Angle: ${currentROT.gt.toFixed(2)}°`;
-                if (predClsEl) predClsEl.innerText = `Angle: ${currentROT.pred.toFixed(2)}°`;
-            } else {
-                if (activeModalTab === 'label') drawPolygonsToCanvas(ctx, currentPolygons.gt);
-                else if (activeModalTab === 'inf') drawPolygonsToCanvas(ctx, currentPolygons.pred);
-            }
+            switchModalTab(activeModalTab); 
             document.getElementById('modalFilename').innerText = taskData.images[currentIndex];
             applyTransform();
         }
 
         function drawPolygonsToCanvas(ctx, polys) {
             polys.forEach(p => {
-                ctx.strokeStyle = p.color; ctx.fillStyle = p.color.replace(/[^,]+(?=\))/, '0.5'); ctx.lineWidth = 3 / (baseScale * zoomScale);
+                const isH = p.isCrossHighlighted;
+                ctx.strokeStyle = isH ? "#ffffff" : p.color; 
+                ctx.fillStyle = p.color.replace(/[^,]+(?=\))/, '0.5'); 
+                ctx.lineWidth = (isH ? 3 : 1.5) / (baseScale * zoomScale);
                 ctx.beginPath(); p.points.forEach((pt, i) => { if (i === 0) ctx.moveTo(pt[0], pt[1]); else ctx.lineTo(pt[0], pt[1]); }); ctx.closePath(); ctx.fill(); ctx.stroke();
             });
         }
