@@ -45,7 +45,15 @@ const ModelRules = {
             angle: entry.rotation_angle !== undefined ? entry.rotation_angle : (entry.angle !== undefined ? entry.angle : (parseFloat(entry.classLabel) || 0)), 
             type: 'rotation' 
         }),
-        parsePred: (ann) => ({ angle: ann.angle || 0, type: 'rotation' })
+        parsePred: (ann) => {
+            let angle = ann.angle || 0;
+            // 추론된 공식 적용: (90 - Original_Angle)
+            let transformed = (90 - angle);
+            // -180 ~ 180 범위로 정규화
+            while (transformed > 180) transformed -= 360;
+            while (transformed < -180) transformed += 360;
+            return { angle: transformed, type: 'rotation' };
+        }
     }
 };
 
