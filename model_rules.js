@@ -43,6 +43,23 @@ const ModelRules = {
             return pts.length >= 3 ? { points: pts, type: 'polygon' } : null;
         }
     },
+    "obd": {
+        name: "OBD (Object Detection)",
+        parseGT: (r) => {
+            if (r.x !== undefined && r.y !== undefined) {
+                return { x: r.x, y: r.y, w: r.width, h: r.height, type: 'rect' };
+            }
+            return null;
+        },
+        parsePred: (ann) => {
+            const d = ann.bbox || ann.segmentation;
+            if (!d) return null;
+            if (Array.isArray(d) && d.length === 4) {
+                return { x: d[0], y: d[1], w: d[2], h: d[3], type: 'rect' };
+            }
+            return null;
+        }
+    },
     "ord": {
         name: "ORD (Oriented Object Detection)",
         parseGT: (r) => {
