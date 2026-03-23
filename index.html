@@ -445,8 +445,8 @@
                 } else {
                     if (canvases.label) canvases.label.style.transform = 'none'; 
                     if (canvases.inf) canvases.inf.style.transform = 'none';
-                    currentPolygons.gt = prepareData(taskData.gt, fileName, 'gt');
-                    currentPolygons.pred = prepareData(taskData.pred, fileName, 'pred');
+                    currentPolygons.gt = prepareData(taskData.gt, fileName, 'gt', img.width, img.height);
+                    currentPolygons.pred = prepareData(taskData.pred, fileName, 'pred', img.width, img.height);
                 }
                 drawOverlaysOnly(); triggerUIUpdateAtLastMouse();
                 setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
@@ -480,16 +480,21 @@
             if (!app.stage) return; app.stage.removeChildren();
             const graphics = new PIXI.Graphics();
             polys.forEach((p, idx) => {
+                if (!p.points || p.points.length < 3) return;
                 const color = parseColorToInt(p.color); const isHighlighted = (idx === hoveredIdx) || (p.isCrossHighlighted);
                 graphics.lineStyle(isHighlighted ? 6 : 2, isHighlighted ? 0xffffff : color, 1);
-                graphics.beginFill(color, 0.5); graphics.drawPolygon(p.points.flat()); graphics.endFill();
+                graphics.beginFill(color, 0.5); 
+                const flatPts = p.points.flat();
+                if (flatPts.length >= 6) graphics.drawPolygon(flatPts); 
+                graphics.endFill();
             });
             app.stage.addChild(graphics);
         }
 
         function parseColorToInt(color) {
+            if (!color) return 0xff0000;
             if (Array.isArray(color)) return (color[0] << 16) + (color[1] << 8) + color[2];
-            const m = color.match(/\d+/g); return m ? (parseInt(m[0]) << 16) + (parseInt(m[1]) << 8) + parseInt(m[2]) : 0xff0000;
+            const m = String(color).match(/\d+/g); return (m && m.length >= 3) ? (parseInt(m[0]) << 16) + (parseInt(m[1]) << 8) + parseInt(m[2]) : 0xff0000;
         }
 
         function handleMouseMove(e) {
@@ -613,9 +618,15 @@
 
         function drawPolygonsToCanvas(ctx, polys) {
             polys.forEach(p => {
+                if (!p.points || p.points.length < 3) return;
                 const isH = p.isCrossHighlighted;
                 ctx.strokeStyle = isH ? "#ffffff" : p.color; 
-                ctx.fillStyle = p.color.replace(/[^,]+(?=\))/, '0.5'); 
+                let fillColor = p.color;
+                if (fillColor.startsWith('rgba')) fillColor = fillColor.replace(/[^,]+(?=\))/, '0.5');
+                else if (fillColor.startsWith('rgb')) fillColor = fillColor.replace('rgb', 'rgba').replace(')', ',0.5)');
+                else if (fillColor.startsWith('#')) fillColor += '80'; // Hex fallback
+                
+                ctx.fillStyle = fillColor;
                 ctx.lineWidth = (isH ? 3 : 1.5) / (baseScale * zoomScale);
                 ctx.beginPath(); p.points.forEach((pt, i) => { if (i === 0) ctx.moveTo(pt[0], pt[1]); else ctx.lineTo(pt[0], pt[1]); }); ctx.closePath(); ctx.fill(); ctx.stroke();
             });
@@ -630,24 +641,36 @@
             canvas.style.transform = `translate(-50%, -50%) translate(${translateX}px, ${translateY}px) scale(${baseScale * zoomScale}) rotate(${rot}deg)`; 
         }
 
-        function prepareData(source, fileName, type) {
+        function prepareData(source, fileName, type, w, h) {
             if (!source || taskData.modelType === 'rot') return [];
             const rule = ModelRules[taskData.modelType] || ModelRules['seg'];
             const res = []; const pure = getPureFileName(fileName);
             if (type === 'gt' && source.data) {
                 const entry = source.data.find(d => getPureFileName(d.fileName) === pure);
-                if (entry && entry.regionLabel) entry.regionLabel.forEach(r => { const p = rule.parseGT(r); if (p) res.push(processData(p, r.className, source.classes, type)); });
+                if (entry && entry.regionLabel) entry.regionLabel.forEach(r => { const p = rule.parseGT(r); if (p) res.push(processData(p, r.className, source.classes, type, null, w, h)); });
             } else if (type === 'pred') {
+                const categories = source.categories || [];
                 (taskData.indexedPred[pure] || []).forEach(a => { 
-                    const p = rule.parsePred(a); const cat = source.categories.find(c => String(c.id) === String(a.category_id)); 
-                    if (p) res.push(processData(p, cat ? cat.name : "Unknown", source.categories, type, cat)); 
+                    const p = rule.parsePred(a); 
+                    const cat = categories.find(c => String(c.id) === String(a.category_id)); 
+                    if (p) res.push(processData(p, cat ? cat.name : "Unknown", categories, type, cat, w, h)); 
                 });
             }
             return res;
         }
 
-        function processData(p, name, classes, type, catObj) {
+        function processData(p, name, classes, type, catObj, imgW, imgH) {
             let pts = (p.type === 'polygon') ? p.points : (p.type === 'rotated_rect') ? getRotatedRectPoints(p.cx, p.cy, p.w, p.h, p.angle) : (p.type === 'rect' ? [[p.x, p.y], [p.x+p.w, p.y], [p.x+p.w, p.y+p.h], [p.x, p.y+p.h]] : [[p.x, p.y], [p.x+p.w, p.y], [p.x+p.w, p.y+p.h], [p.x, p.y+p.h]]);
+            
+            // Detect and fix normalized coordinates (0.0 ~ 1.0)
+            let isNormalized = true;
+            for (let i = 0; i < pts.length; i++) {
+                if (pts[i][0] > 1.1 || pts[i][1] > 1.1) { isNormalized = false; break; }
+            }
+            if (isNormalized && imgW && imgH) {
+                pts = pts.map(pt => [pt[0] * imgW, pt[1] * imgH]);
+            }
+
             let color = 'rgba(255,0,0,1)';
             const found = (taskData.gt.classes || []).find(c => (c.name || "").toLowerCase().trim() === (name || "").toLowerCase().trim());
             if (found && found.color) color = Array.isArray(found.color) ? `rgba(${found.color[0]},${found.color[1]},${found.color[2]},1)` : found.color;
@@ -671,11 +694,21 @@
             sidebarLegend.innerHTML = '';
             if (typeKey === 'rot') { sidebarLegend.innerHTML = '<div style="font-size:0.8rem; color:var(--text-muted)">N/A</div>'; }
             else { (data.gt.classes || []).forEach(c => { const colorStr = Array.isArray(c.color) ? `rgb(${c.color[0]},${c.color[1]},${c.color[2]})` : c.color; const item = document.createElement('div'); item.className = 'legend-item'; item.innerHTML = `<span class="color-box" style="background:${colorStr}"></span><span>${c.name}</span>`; sidebarLegend.appendChild(item); }); }
-            const fmtM = (m, k) => (m && m[k]) ? (parseFloat(m[k]) * 100).toFixed(2) + "%" : "N/A";
-            document.getElementById('mAccuracy').innerText = fmtM(data.metrics, "test/neurocle_accuracy");
-            document.getElementById('mF1').innerText = fmtM(data.metrics, "test/neurocle_f1");
-            document.getElementById('mPrecision').innerText = fmtM(data.metrics, "test/neurocle_precision");
-            document.getElementById('mRecall').innerText = fmtM(data.metrics, "test/neurocle_recall");
+            const fmtM = (m, k) => {
+                if (!m) return "N/A";
+                // 1. 접두사 없는 버전 우선 확인 (e.g., test/accuracy)
+                let val = m[k];
+                // 2. 없으면 접두사 있는 버전 확인 (e.g., test/neurocle_accuracy)
+                if (val === undefined) {
+                    const legacyKey = k.replace('test/', 'test/neurocle_');
+                    val = m[legacyKey];
+                }
+                return val !== undefined ? (parseFloat(val) * 100).toFixed(2) + "%" : "N/A";
+            };
+            document.getElementById('mAccuracy').innerText = fmtM(data.metrics, "test/accuracy");
+            document.getElementById('mF1').innerText = fmtM(data.metrics, "test/f1");
+            document.getElementById('mPrecision').innerText = fmtM(data.metrics, "test/precision");
+            document.getElementById('mRecall').innerText = fmtM(data.metrics, "test/recall");
         }
     </script>
 </body>

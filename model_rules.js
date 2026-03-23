@@ -9,13 +9,38 @@ const ModelRules = {
             if (ann.obox) return ModelRules.ord.parsePred(ann);
             let seg = ann.segmentation;
             if (!seg) return null;
-            let flat = Array.isArray(seg[0]) ? seg[0] : seg;
-            if (flat.length < 6) return null;
+            
+            // Handle multiple polygons or flat array
+            let flat = [];
+            if (Array.isArray(seg)) {
+                if (Array.isArray(seg[0])) {
+                    // Take the longest polygon if multiple exist
+                    let maxLen = -1;
+                    let bestIdx = 0;
+                    for (let i = 0; i < seg.length; i++) {
+                        if (seg[i].length > maxLen) {
+                            maxLen = seg[i].length;
+                            bestIdx = i;
+                        }
+                    }
+                    flat = seg[bestIdx];
+                } else {
+                    flat = seg;
+                }
+            } else if (seg && typeof seg === 'object' && seg.counts) {
+                // RLE format - not supported for rendering, but we can't decode it here easily
+                return null;
+            }
+
+            if (!flat || flat.length < 6) return null;
+            
             const pts = [];
             for (let i = 0; i < flat.length; i += 2) {
-                pts.push([flat[i], flat[i+1]]);
+                const x = parseFloat(flat[i]);
+                const y = parseFloat(flat[i+1]);
+                if (!isNaN(x) && !isNaN(y)) pts.push([x, y]);
             }
-            return { points: pts, type: 'polygon' };
+            return pts.length >= 3 ? { points: pts, type: 'polygon' } : null;
         }
     },
     "ord": {
