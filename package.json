@@ -1,6 +1,6 @@
 {
   "name": "engine-studio",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "Static web-based analysis dashboard",
   "private": true,
   "scripts": {
