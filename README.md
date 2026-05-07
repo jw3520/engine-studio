@@ -14,7 +14,7 @@
 
 ### 1. 시연 영상
 ![Demo](./images/demo.gif)
-*전체 사용 동선*
+*전체 사용 시나리오 동선*
 
 ### 2. SEG (Segmentation) 분석 화면
 ![SEG Analysis](./images/SEG_images.png)
